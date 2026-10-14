@@ -894,11 +894,11 @@ JWT トークン無効化リスト。ログアウト時にトークンを失効�
 
 ### ユーザー（6名）
 
-| oidc_sub                             | email                        | name           | role      | is_active |
-| ------------------------------------ | ---------------------------- | -------------- | --------- | --------- |
-| 00000000-0000-4000-a000-000000000001 | admin@struct-pass.example    | システム管理者 | SYS_ADMIN | true      |
-| 00000000-0000-4000-a000-000000000002 | wh-user@struct-pass.example  | 倉庫 一郎      | WH_USER   | true      |
-| 00000000-0000-4000-a000-000000000003 | wh-admin@struct-pass.example | 倉庫 管理太郎  | WH_ADMIN  | true      |
-| 00000000-0000-4000-a000-000000000004 | of-user@struct-pass.example  | 事務 花子      | OF_USER   | true      |
-| 00000000-0000-4000-a000-000000000005 | of-admin@struct-pass.example | 事務 管理子    | OF_ADMIN  | true      |
-| 00000000-0000-4000-a000-000000000006 | tanaka@struct-pass.example   | 田中 太郎      | WH_ADMIN  | true      |
+| oidc_sub                             | email                          | name           | role      | is_active |
+| ------------------------------------ | ------------------------------ | -------------- | --------- | --------- |
+| 00000000-0000-4000-a000-000000000001 | `admin@struct-pass.example`    | システム管理者 | SYS_ADMIN | true      |
+| 00000000-0000-4000-a000-000000000002 | `wh-user@struct-pass.example`  | 倉庫 一郎      | WH_USER   | true      |
+| 00000000-0000-4000-a000-000000000003 | `wh-admin@struct-pass.example` | 倉庫 管理太郎  | WH_ADMIN  | true      |
+| 00000000-0000-4000-a000-000000000004 | `of-user@struct-pass.example`  | 事務 花子      | OF_USER   | true      |
+| 00000000-0000-4000-a000-000000000005 | `of-admin@struct-pass.example` | 事務 管理子    | OF_ADMIN  | true      |
+| 00000000-0000-4000-a000-000000000006 | `tanaka@struct-pass.example`   | 田中 太郎      | WH_ADMIN  | true      |

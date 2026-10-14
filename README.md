@@ -12,7 +12,7 @@
 
 共存時はReteをfrontend **3010** / backend **3011** / DB **5433**、Referenceをfrontend **3000** / backend **3001** / DB **5432**にします。
 
-Reteのルート.envはRETE_DB_PORT=5433、backend .envはPORT=3011・CORS_ORIGIN=http://localhost:3010・DATABASE_URLのポート5433、frontend .env.localはPORT=3010・NEXT_PUBLIC_API_BASE_URL=http://localhost:3011/api/v1に設定します。Reference frontendではNEXT_PUBLIC_API_URL=http://localhost:3001/api/v1です。両アプリでAPI変数名が異なります。Reteのbackend設定は、frontendとOIDCのログイン画面の移動先にも使われます。
+Reteのルート`.env`は`RETE_DB_PORT=5433`、backend `.env`は`PORT=3011`・`CORS_ORIGIN=http://localhost:3010`・`DATABASE_URL`のポート`5433`、frontend `.env.local`は`PORT=3010`・`NEXT_PUBLIC_API_BASE_URL=http://localhost:3011/api/v1`に設定します。Reference frontendでは`NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1`です。両アプリでAPI変数名が異なります。Reteのbackend設定は、frontendとOIDCのログイン画面の移動先にも使われます。
 
 ## Referenceを準備する
 
@@ -42,15 +42,15 @@ backendのDATABASE_URLはローカル評価DBに設定してください。compo
 node -e "console.log(require('node:crypto').randomBytes(64).toString('hex'))"
 ```
 
-| 関心事             | Rete backend .env                                                                                 | Reference backend .env                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| issuer             | OIDC_ISSUER=http://localhost:3011/api/v1/oidc                                                     | 同じOIDC_ISSUER                                                            |
-| client ID          | OIDC_REFERENCE_CLIENT_ID=struct-pass-reference                                                    | OIDC_CLIENT_ID=struct-pass-reference                                       |
-| client secret      | OIDC_REFERENCE_CLIENT_SECRETに生成した値                                                          | 同じ値をOIDC_CLIENT_SECRETへ                                               |
-| callback           | OIDC_REFERENCE_REDIRECT_URIS=http://localhost:3001/api/v1/auth/oidc/callback                      | 同じ値をOIDC_REDIRECT_URIへ                                                |
-| Reference frontend | REFERENCE_APP_URL=http://localhost:3000                                                           | OIDC_FRONTEND_URL=http://localhost:3000、CORS_ORIGIN=http://localhost:3000 |
-| 種別一覧の連携     | REFERENCE_INTEGRATION_API_URL=http://localhost:3001/api/v1、INTEGRATION_SERVICE_TOKENに別の生成値 | 同じ値をINTEGRATION_SERVICE_TOKENへ                                        |
-| 管理者ID           | BOOTSTRAP_ADMIN_SUB=00000000-0000-4000-a000-000000000001                                          | 同じBOOTSTRAP_ADMIN_SUB（ローカル評価の既定ID）                            |
+| 関心事             | Rete backend .env                                                                                   | Reference backend .env                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| issuer             | `OIDC_ISSUER=http://localhost:3011/api/v1/oidc`                                                     | 同じOIDC_ISSUER                                                                |
+| client ID          | OIDC_REFERENCE_CLIENT_ID=struct-pass-reference                                                      | OIDC_CLIENT_ID=struct-pass-reference                                           |
+| client secret      | OIDC_REFERENCE_CLIENT_SECRETに生成した値                                                            | 同じ値をOIDC_CLIENT_SECRETへ                                                   |
+| callback           | `OIDC_REFERENCE_REDIRECT_URIS=http://localhost:3001/api/v1/auth/oidc/callback`                      | 同じ値をOIDC_REDIRECT_URIへ                                                    |
+| Reference frontend | `REFERENCE_APP_URL=http://localhost:3000`                                                           | `OIDC_FRONTEND_URL=http://localhost:3000`、`CORS_ORIGIN=http://localhost:3000` |
+| 種別一覧の連携     | `REFERENCE_INTEGRATION_API_URL=http://localhost:3001/api/v1`、INTEGRATION_SERVICE_TOKENに別の生成値 | 同じ値をINTEGRATION_SERVICE_TOKENへ                                            |
+| 管理者ID           | BOOTSTRAP_ADMIN_SUB=00000000-0000-4000-a000-000000000001                                            | 同じBOOTSTRAP_ADMIN_SUB（ローカル評価の既定ID）                                |
 
 ReteのOIDC_COOKIE_KEYS等の認証鍵も雛形から評価用の生成値へ変更し、両backendを再起動します。Reteのclientはsecretとcallbackの両方を設定した時だけ有効です。往復を確認後、ReteでREFERENCE_OIDC_READY=trueを設定するとシステムの導線が有効になります。機械認証tokenを設定しない場合は種別一覧連携を評価できません。
 
@@ -64,7 +64,7 @@ pnpm dev
 
 先にReteの評価DBへmigration・seedを実行し、Reteを起動してください。Referenceのseedはパスワードを保持せず、ロールとUser.oidcSubを作ります。ReteのAccount.idとReferenceのUser.oidcSubの一致が必要です。実体は[Referenceのseed](./packages/backend/prisma/seed/users.ts)とReteのpackages/backend/prisma/seed.tsです。
 
-http://localhost:3000 を開き、Reteへ移動してログインします。初期管理者はReteのadmin@rete.local（SEED_ADMIN_EMAIL未設定時）です。Reteのローカル評価用パスワードは同リポジトリのseedにある公開fixtureであり、実運用の秘密ではありません。Referenceに独自のパスワードログインはありません。ログイン後は商品一覧・詳細、倉庫・在庫等をロールに応じて評価できます。
+[http://localhost:3000](http://localhost:3000) を開き、Reteへ移動してログインします。初期管理者はReteの`admin@rete.local`（SEED_ADMIN_EMAIL未設定時）です。Reteのローカル評価用パスワードは同リポジトリのseedにある公開fixtureであり、実運用の秘密ではありません。Referenceに独自のパスワードログインはありません。ログイン後は商品一覧・詳細、倉庫・在庫等をロールに応じて評価できます。
 
 ## 資料と検査
 
