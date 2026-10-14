@@ -1,0 +1,753 @@
+// Prisma Schema for Struct Pass
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum UserRole {
+  WH_USER
+  WH_ADMIN
+  OF_USER
+  OF_ADMIN
+  SYS_ADMIN
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum ActiveStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ReceivingStatus {
+  DRAFT
+  CONFIRMED
+  COMPLETED
+}
+
+enum ShipmentStatus {
+  DRAFT
+  CONFIRMED
+  SHIPPED
+}
+
+enum StocktakingStatus {
+  DRAFT
+  CONFIRMED
+}
+
+enum OrderStatus {
+  DRAFT
+  ORDERED
+  PARTIALLY_RECEIVED
+  COMPLETED
+}
+
+enum AdjustmentType {
+  STOCKTAKING
+  RECEIVING
+  SHIPMENT
+  MANUAL
+}
+
+// ============================================================
+// User
+// ============================================================
+
+model User {
+  id           String    @id @default(uuid())
+  // rete（IdP）が発行する OIDC sub のリンクキー。bootstrap は固定値で seed、一般ユーザーは JIT 時に set。
+  // SSO 一本化に伴い username / passwordHash / mustChangePassword は撤去（identity SoT = rete）。
+  oidcSub      String?   @unique @map("oidc_sub")
+  email        String    @unique
+  // 表示名。OIDC `name` claim から流入（旧 username の表示用途を継承）。claim 欠落時は email を流用。
+  name         String
+  // pending（承認待ち）= role null。JIT 直後は null で、管理者が role 付与 + 有効化して承認する。
+  // RolePermission lookup は role=null で空 → 自然に全 feature 不可（権限待ち）になる。
+  role         UserRole?
+  isActive            Boolean  @default(true) @map("is_active")
+  // 管理者が SSO 連携を許可した未連携ユーザーに対する使い切りフラグ（ref-0066）。
+  // 許可（true）状態のまま SSO ログインがメール一致で成功すると、その場で oidc_sub を
+  // リンクして false へ消費する（なりすまし防止のため窓は許可〜次回ログインまで）。
+  allowOidcLink       Boolean  @default(false) @map("allow_oidc_link")
+  lastLoginAt         DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  createdProducts  Product[]  @relation("ProductCreatedBy")
+  updatedProducts  Product[]  @relation("ProductUpdatedBy")
+  auditLogs        AuditLog[]
+
+  userGroups       UserGroup[]
+  permissions      Permission[]
+
+  createdReceivings  Receiving[]  @relation("ReceivingCreatedBy")
+  createdShipments   Shipment[]   @relation("ShipmentCreatedBy")
+  createdStocktakings Stocktaking[] @relation("StocktakingCreatedBy")
+  createdStockAdjustments StockAdjustment[] @relation("StockAdjustmentCreatedBy")
+  createdOrders      Order[]      @relation("OrderCreatedBy")
+  updatedSystemSettings SystemSetting[] @relation("SystemSettingUpdatedBy")
+  updatedTablePaginationSettings TablePaginationSetting[] @relation("TablePaginationSettingUpdatedBy")
+
+  createdAnnouncements Announcement[] @relation("AnnouncementCreatedBy")
+  updatedAnnouncements Announcement[] @relation("AnnouncementUpdatedBy")
+  createdAnnouncementAttachments AnnouncementAttachment[] @relation("AnnouncementAttachmentCreatedBy")
+
+  userTableColumnWidths UserTableColumnWidth[]
+
+  @@map("users")
+}
+
+// ============================================================
+// User Table Column Width (一覧画面の列幅永続化)
+// ============================================================
+
+model UserTableColumnWidth {
+  userId    String   @map("user_id")
+  tableId   String   @map("table_id")
+  columnKey String   @map("column_key")
+  width     Int
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, tableId, columnKey])
+  @@index([userId, tableId])
+  @@map("user_table_column_widths")
+}
+
+// ============================================================
+// Table Pagination Setting (一覧ごとのページサイズ設定 / system scope)
+// ============================================================
+// admin が一覧ごとに defaultPageSize / pageSizeOptions を設定する。
+// pk = tableId 単独（admin scope のため user 軸を持たない）。
+// pageSizeOptions は "10,20,50,100" 形式のカンマ区切り文字列で保持。
+
+model TablePaginationSetting {
+  tableId         String   @id @map("table_id")
+  defaultPageSize Int      @map("default_page_size")
+  pageSizeOptions String   @map("page_size_options")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedById     String?  @map("updated_by_id")
+  updatedBy       User?    @relation("TablePaginationSettingUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("table_pagination_settings")
+}
+
+// ============================================================
+// Product
+// ============================================================
+
+model Product {
+  id            String        @id @default(uuid())
+  code          String        @unique
+  name          String
+  description   String?
+  categoryId    Int           @map("category_id")
+  price         Decimal       @db.Decimal(10, 2)
+  purchasePrice Decimal?      @map("purchase_price") @db.Decimal(10, 2)
+  unit          String?
+  stockQuantity Int           @default(0) @map("stock_quantity")
+  status        ProductStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  createdBy     String?       @map("created_by")
+  updatedBy     String?       @map("updated_by")
+
+  // Relations
+  category Category @relation(fields: [categoryId], references: [id])
+  creator  User?    @relation("ProductCreatedBy", fields: [createdBy], references: [id])
+  updater  User?    @relation("ProductUpdatedBy", fields: [updatedBy], references: [id])
+
+  receivingLines   ReceivingLine[]
+  shipmentLines    ShipmentLine[]
+  stocks           Stock[]
+  stocktakingItems StocktakingItem[]
+  stockAdjustments StockAdjustment[]
+  orderItems       OrderItem[]
+
+  @@map("products")
+}
+
+// ============================================================
+// Audit Log
+// ============================================================
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String      @map("user_id")
+  entityType String      @map("entity_type")
+  entityId   String      @map("entity_id")
+  action     AuditAction
+  oldValues  Json?       @map("old_values")
+  newValues  Json?       @map("new_values")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+// ============================================================
+// Master: Warehouse
+// ============================================================
+
+model Warehouse {
+  id        Int          @id @default(autoincrement())
+  code      String       @unique
+  name      String
+  address   String?
+  phone     String?
+  manager   String?
+  capacity  Int?
+  status    ActiveStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  receivings   Receiving[]
+  shipments    Shipment[]
+  stocks       Stock[]
+  stocktakings Stocktaking[]
+  stockAdjustments StockAdjustment[]
+
+  @@map("warehouses")
+}
+
+// ============================================================
+// Master: Carrier
+// ============================================================
+
+model Carrier {
+  id            Int          @id @default(autoincrement())
+  code          String       @unique
+  name          String
+  address       String?
+  phone         String?
+  contactPerson String?      @map("contact_person")
+  email         String?
+  status        ActiveStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  shipments Shipment[]
+
+  @@map("carriers")
+}
+
+// ============================================================
+// Master: Supplier (仕入先)
+// ============================================================
+
+model Supplier {
+  id            Int          @id @default(autoincrement())
+  code          String       @unique
+  name          String
+  address       String?
+  phone         String?
+  contactPerson String?      @map("contact_person")
+  email         String?
+  status        ActiveStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  receivings Receiving[]
+  orders     Order[]
+
+  @@map("suppliers")
+}
+
+// ============================================================
+// Master: Category (カテゴリー)
+// ============================================================
+
+model Category {
+  id        Int          @id @default(autoincrement())
+  code      String       @unique
+  name      String
+  status    ActiveStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  products Product[]
+
+  @@map("categories")
+}
+
+// ============================================================
+// Master: Group & UserGroup
+// ============================================================
+
+model Group {
+  id          Int          @id @default(autoincrement())
+  code        String       @unique
+  name        String
+  description String?
+  role        UserRole  @default(WH_USER)
+  status      ActiveStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  userGroups  UserGroup[]
+  permissions Permission[]
+  announcementRoles AnnouncementRole[]
+
+  @@map("groups")
+}
+
+model UserGroup {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  groupId   Int      @map("group_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId])
+  @@map("user_groups")
+}
+
+// ============================================================
+// Permission
+// ============================================================
+
+model Permission {
+  id        Int     @id @default(autoincrement())
+  userId    String? @map("user_id")
+  groupId   Int?    @map("group_id")
+  featureId String  @map("feature_id")
+  canView   Boolean @default(false) @map("can_view")
+
+  // Relations (XOR constraint enforced at service layer)
+  user  User?  @relation(fields: [userId], references: [id])
+  group Group? @relation(fields: [groupId], references: [id])
+
+  @@index([userId])
+  @@index([groupId])
+  @@index([featureId])
+  @@map("permissions")
+}
+
+// ============================================================
+// Role Permission (ロール別CRUD権限)
+// ============================================================
+
+model RolePermission {
+  id        Int      @id @default(autoincrement())
+  role      UserRole
+  featureId String   @map("feature_id")
+  canView   Boolean  @default(false) @map("can_view")
+  canCreate Boolean  @default(false) @map("can_create")
+  canUpdate Boolean  @default(false) @map("can_update")
+  canDelete Boolean  @default(false) @map("can_delete")
+
+  // PermissionGuard が WHERE role = $1 で全件取得する。
+  // 既存の @@unique([role, featureId]) が role を prefix とする B-tree index を作るため、
+  // この lookup は index range scan で解決される（追加の @@index([role]) は不要）。
+  @@unique([role, featureId])
+  @@map("role_permissions")
+}
+
+// ============================================================
+// Receiving (入荷)
+// ============================================================
+
+model Receiving {
+  id            Int             @id @default(autoincrement())
+  receivingNo   String          @unique @map("receiving_no")
+  receivingDate DateTime        @map("receiving_date") @db.Date
+  warehouseId   Int             @map("warehouse_id")
+  supplierId    Int             @map("supplier_id")
+  status        ReceivingStatus @default(DRAFT)
+  createdBy     String          @map("created_by")
+  deletedAt     DateTime?       @map("deleted_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  warehouse Warehouse      @relation(fields: [warehouseId], references: [id])
+  supplier  Supplier       @relation(fields: [supplierId], references: [id])
+  creator   User           @relation("ReceivingCreatedBy", fields: [createdBy], references: [id])
+  lines     ReceivingLine[]
+
+  @@map("receivings")
+}
+
+model ReceivingLine {
+  id          Int  @id @default(autoincrement())
+  receivingId Int  @map("receiving_id")
+  lineNo      Int  @map("line_no")
+  productId   String @map("product_id")
+  plannedQty  Int  @map("planned_qty")
+  actualQty   Int? @map("actual_qty")
+
+  // Relations
+  receiving Receiving @relation(fields: [receivingId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@unique([receivingId, lineNo])
+  // 予測在庫の一括集計（productId IN (...)）が順次走査にならないための index
+  // （rev-quality 2026-07-31 DB-M3）
+  @@index([productId])
+  @@map("receiving_lines")
+}
+
+// ============================================================
+// Shipment (出荷)
+// ============================================================
+
+model Shipment {
+  id           Int            @id @default(autoincrement())
+  shipmentNo   String         @unique @map("shipment_no")
+  shipmentDate DateTime       @map("shipment_date") @db.Date
+  warehouseId  Int            @map("warehouse_id")
+  destination  String
+  carrierId    Int?           @map("carrier_id")
+  status       ShipmentStatus @default(DRAFT)
+  createdBy    String         @map("created_by")
+  deletedAt    DateTime?      @map("deleted_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  warehouse Warehouse     @relation(fields: [warehouseId], references: [id])
+  carrier   Carrier?      @relation(fields: [carrierId], references: [id])
+  creator   User          @relation("ShipmentCreatedBy", fields: [createdBy], references: [id])
+  lines     ShipmentLine[]
+
+  @@map("shipments")
+}
+
+model ShipmentLine {
+  id         Int  @id @default(autoincrement())
+  shipmentId Int  @map("shipment_id")
+  lineNo     Int  @map("line_no")
+  productId  String @map("product_id")
+  plannedQty Int  @map("planned_qty")
+  actualQty  Int? @map("actual_qty")
+
+  // Relations
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@unique([shipmentId, lineNo])
+  // 予測在庫の一括集計（productId IN (...)）が順次走査にならないための index
+  // （rev-quality 2026-07-31 DB-M3）
+  @@index([productId])
+  @@map("shipment_lines")
+}
+
+// ============================================================
+// Stock (在庫)
+// ============================================================
+
+model Stock {
+  id          Int @id @default(autoincrement())
+  warehouseId Int @map("warehouse_id")
+  productId   String @map("product_id")
+  quantity    Int @default(0)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@unique([warehouseId, productId])
+  @@map("stocks")
+}
+
+// ============================================================
+// Stocktaking (棚卸)
+// ============================================================
+
+model Stocktaking {
+  id              Int              @id @default(autoincrement())
+  stocktakingDate DateTime         @map("stocktaking_date") @db.Date
+  warehouseId     Int              @map("warehouse_id")
+  stocktaker      String?
+  status          StocktakingStatus @default(DRAFT)
+  createdBy       String           @map("created_by")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  warehouse Warehouse        @relation(fields: [warehouseId], references: [id])
+  creator   User             @relation("StocktakingCreatedBy", fields: [createdBy], references: [id])
+  items     StocktakingItem[]
+
+  @@map("stocktakings")
+}
+
+model StocktakingItem {
+  id              Int    @id @default(autoincrement())
+  stocktakingId   Int    @map("stocktaking_id")
+  productId       String @map("product_id")
+  theoreticalQty  Int    @map("theoretical_qty")
+  actualQty       Int?   @map("actual_qty")
+  difference      Int?
+  differenceReason String? @map("difference_reason")
+
+  // Relations
+  stocktaking Stocktaking @relation(fields: [stocktakingId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id])
+
+  @@unique([stocktakingId, productId])
+  @@index([productId])
+  @@map("stocktaking_items")
+}
+
+// ============================================================
+// Stock Adjustment (在庫調整ログ)
+// ============================================================
+
+model StockAdjustment {
+  id              Int            @id @default(autoincrement())
+  warehouseId     Int            @map("warehouse_id")
+  productId       String         @map("product_id")
+  adjustmentType  AdjustmentType @map("adjustment_type")
+  quantityBefore  Int            @map("quantity_before")
+  quantityAfter   Int            @map("quantity_after")
+  reason          String?
+  createdBy       String         @map("created_by")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  // Relations
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+  creator   User      @relation("StockAdjustmentCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([warehouseId, productId, createdAt])
+  @@map("stock_adjustments")
+}
+
+// ============================================================
+// Order (発注)
+// ============================================================
+
+model Order {
+  id                  Int         @id @default(autoincrement())
+  orderNo             String      @unique @map("order_no")
+  orderDate           DateTime    @map("order_date") @db.Date
+  supplierId          Int         @map("supplier_id")
+  desiredDeliveryDate DateTime?   @map("desired_delivery_date") @db.Date
+  status              OrderStatus @default(DRAFT)
+  totalQty            Int?        @map("total_qty")
+  totalAmount         Decimal?    @map("total_amount") @db.Decimal(12, 2)
+  createdBy           String      @map("created_by")
+  deletedAt           DateTime?   @map("deleted_at")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  supplier Supplier    @relation(fields: [supplierId], references: [id])
+  creator  User        @relation("OrderCreatedBy", fields: [createdBy], references: [id])
+  items    OrderItem[]
+
+  @@map("orders")
+}
+
+// ============================================================
+// System Setting (システム設定)
+// 旧名: SystemParameter / system_parameters table。
+// model 名のみ rename し、@@map で table 名は維持（migration 不要）。
+// ============================================================
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  valueType   String   @default("STRING") @map("value_type")
+  label       String
+  description String?
+  category    String   @default("system")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedById String?  @map("updated_by_id")
+  updatedBy   User?    @relation("SystemSettingUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([category])
+  @@map("system_parameters")
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int     @map("order_id")
+  lineNo    Int     @map("line_no")
+  productId String  @map("product_id")
+  orderQty  Int     @map("order_qty")
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  amount    Decimal @db.Decimal(12, 2)
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([orderId, lineNo])
+  @@map("order_items")
+}
+
+// ============================================================
+// Revoked Token (トークン無効化リスト)
+// ============================================================
+
+model RevokedToken {
+  id        Int      @id @default(autoincrement())
+  jti       String   @unique
+  expiresAt DateTime @map("expires_at")
+  revokedAt DateTime @default(now()) @map("revoked_at")
+
+  @@index([expiresAt])
+  @@map("revoked_tokens")
+}
+
+// ============================================================
+// Metamodel (ref-0013: Phase 1)
+// ============================================================
+
+enum FieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  BOOLEAN
+}
+
+/// 種別定義（プリセット5種＋ユーザー定義）
+model ObjectType {
+  id        Int       @id @default(autoincrement())
+  key       String    @unique
+  name      String
+  icon      String?
+  sortOrder Int       @default(0) @map("sort_order")
+  isPreset  Boolean   @default(false) @map("is_preset")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  fieldDefs     FieldDef[]
+  customRecords CustomRecord[]
+
+  @@index([sortOrder])
+  @@map("object_types")
+}
+
+/// フィールド定義（ObjectType に属するフィールドのスキーマ）
+model FieldDef {
+  id           Int        @id @default(autoincrement())
+  objectTypeId Int        @map("object_type_id")
+  key          String
+  label        String
+  type         FieldType
+  required     Boolean    @default(false)
+  sortOrder    Int        @default(0) @map("sort_order")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  objectType ObjectType @relation(fields: [objectTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([objectTypeId, key])
+  @@map("field_defs")
+}
+
+/// ユーザー定義種別の汎用データ格納
+/// data(JSONB) には現状 index を追加しない。Phase2 で JSONB 内条件検索を解禁する時に GIN index を追加する。
+model CustomRecord {
+  id           Int        @id @default(autoincrement())
+  objectTypeId Int        @map("object_type_id")
+  data         Json
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  objectType ObjectType @relation(fields: [objectTypeId], references: [id], onDelete: Restrict)
+
+  @@index([objectTypeId])
+  @@map("custom_records")
+}
+
+// ============================================================
+// Announcement (掲示板)
+// ============================================================
+
+model Announcement {
+  id           Int      @id @default(autoincrement())
+  title        String
+  bodyMarkdown String   @map("body_markdown")
+  isNew        Boolean  @default(false) @map("is_new")
+  isImportant  Boolean  @default(false) @map("is_important")
+  notifiedAt   DateTime @default(now()) @map("notified_at")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdById  String   @map("created_by_id")
+  updatedById  String?  @map("updated_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  creator     User  @relation("AnnouncementCreatedBy", fields: [createdById], references: [id])
+  updater     User? @relation("AnnouncementUpdatedBy", fields: [updatedById], references: [id])
+  roles       AnnouncementRole[]
+  attachments AnnouncementAttachment[]
+
+  @@index([sortOrder])
+  @@index([notifiedAt])
+  @@map("announcements")
+}
+
+model AnnouncementRole {
+  announcementId Int @map("announcement_id")
+  groupId        Int @map("group_id")
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, groupId])
+  @@index([groupId, announcementId])
+  @@map("announcement_roles")
+}
+
+model AnnouncementAttachment {
+  id             Int      @id @default(autoincrement())
+  announcementId Int      @map("announcement_id")
+  fileName       String   @map("file_name")
+  storagePath    String   @map("storage_path")
+  mimeType       String   @map("mime_type")
+  sizeBytes      Int      @map("size_bytes")
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdById    String?  @map("created_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  creator      User?        @relation("AnnouncementAttachmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([announcementId])
+  @@index([createdById])
+  @@map("announcement_attachments")
+}
