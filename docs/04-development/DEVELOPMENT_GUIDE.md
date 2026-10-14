@@ -143,7 +143,7 @@ pnpm --filter @struct-pass/backend test:cov
 ## SSO とデモユーザー
 
 reference はパスワードを保持せず、rete で認証されたユーザーへ reference のロールを割り当てます。
-デモユーザーとロールの対応は [GETTING_STARTED.md](../01-introduction/GETTING_STARTED.md#デモユーザー) を参照してください。
+デモユーザーとロールの対応は [ユーザーのseed定義](../../packages/backend/prisma/seed/users.ts) を参照してください。
 
 seed を変更する場合は、rete の `Account.id`、OIDC の `sub`、reference の `User.oidcSub` を一致させます。
 不一致のままログインすると、別ユーザーの作成またはメールアドレスの一意制約違反が起きます。
