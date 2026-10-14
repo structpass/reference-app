@@ -1,6 +1,6 @@
 # Struct Pass Reference
 
-商品・倉庫・受発注・在庫を扱う参照実装です。Next.js / NestJS / PostgreSQL / Prismaを使い、ログインは別アプリの[Rete](https://github.com/structpass/rete-public)が担います。両リポジトリをセットでローカル評価してください。
+商品・倉庫・受発注・在庫を扱う参照実装です。Next.js / NestJS / PostgreSQL / Prismaを使い、ログインは別アプリの[Rete](https://github.com/structpass/rete-app)が担います。両リポジトリをセットでローカル評価してください。
 
 利用条件は[LICENSE.md](./LICENSE.md)と[NOTICE.md](./NOTICE.md)が正本です。PolyForm Free Trial License 1.0.0による評価目的のsource-available提供で、一般的なOSSライセンスではありません。
 
@@ -8,7 +8,7 @@
 
 - Node.js 24.14.1（版の正本は`.nvmrc`。`package.json`のenginesは`>=24.0.0`）
 - pnpm 9.15.4、Docker Compose、依存・フォント取得のネットワーク接続
-- [Reteの起動手順](https://github.com/structpass/rete-public#評価環境の起動)を完了した評価環境
+- [Reteの起動手順](https://github.com/structpass/rete-app#評価環境の起動)を完了した評価環境
 
 共存時はReteをfrontend **3010** / backend **3011** / DB **5433**、Referenceをfrontend **3000** / backend **3001** / DB **5432**にします。
 
