@@ -16,13 +16,13 @@
 
 ### magicastの組み込み依存修復
 
-`magicast@0.5.5`に組み込まれたsource-map-jsは[pnpm patch](./patches/magicast@0.5.5.patch)で修復します。組み込みコードの修復と互換性は `pnpm run test:security` で検証します。依存のLICENSE・著作権表示は修復後も保持しています。
+`magicast@0.5.5`に組み込まれたsource-map-jsは[pnpm patch](./patches/magicast@0.5.5.patch)で修復します。組み込みコードの修復と互換性は `pnpm run test:security` で検証します。`minimatch`と`glob`の修正版が上のmajorにしか無いため、テストのcoverage収集が新しい呼び出し形に合うよう[test-excludeのpatch](./patches/test-exclude@6.0.0.patch)を適用します。依存のLICENSE・著作権表示は修復後も保持しています。
 
 ### 監査例外にしている依存
 
 `deepmerge` の GHSA-gcqx-w48m-w2h4（Low）は上流に修正版がないため、ローカル patch は適用せず、`package.json` の `pnpm.auditConfig.ignoreGhsas` による監査例外として記録しています。到達するのは `@nestjs/cli` 配下と jest 系の開発・ビルドのツールチェーンだけで、本番 backend イメージは `--prod` で dev 依存を剪定します。判断の理由は開発リポジトリの ADR 0041 に残しています。上流に修正版が出た時点で例外を外す方針です。この例外は監査の合格や製品全体の安全性の保証ではありません。`braces` の GHSA-vfj7-8cjw-p6xm は上流の勧告が撤回されたため、例外にも残していません。
 
-`patches/` に含まれる patch は `magicast@0.5.5.patch` のみです。公開CIは `pnpm audit --audit-level=high` を維持し、監査が失敗した場合も修復の回帰検査を実行します。
+`patches/` に含まれる patch は `magicast@0.5.5.patch` と `test-exclude@6.0.0.patch` です。公開CIは `pnpm audit --audit-level=high` を維持し、監査が失敗した場合も修復の回帰検査を実行します。
 
 名前と用途は[frontend](./packages/frontend/package.json)、[backend](./packages/backend/package.json)、[shared](./packages/shared/package.json)、[root](./package.json)のmanifest、解決された版は[pnpm-lock.yaml](./pnpm-lock.yaml)が正本です。NestJS / Prisma / OIDC client / Next.js / React / テスト・build等の直接・間接依存の利用条件は、インストールした該当版の原文を確認してください。
 

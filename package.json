@@ -107,7 +107,8 @@
       ]
     },
     "patchedDependencies": {
-      "magicast@0.5.5": "patches/magicast@0.5.5.patch"
+      "magicast@0.5.5": "patches/magicast@0.5.5.patch",
+      "test-exclude@6.0.0": "patches/test-exclude@6.0.0.patch"
     }
   }
 }

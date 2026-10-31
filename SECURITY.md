@@ -10,7 +10,7 @@ ReferenceのログインはReteが担います。公開fixtureの存在と実運
 
 ## 残存する依存指摘
 
-公開候補の依存監査（`pnpm audit`）は、監査例外を除いて Critical 0件、High 0件、Moderate 0件、Low 0件です。修正版が公開されている指摘は、直接依存・間接依存とも公式版へ更新済みです。`magicast` に同梱された `source-map-js` は pnpm patch で修復しています（`patches/magicast@0.5.5.patch`、回帰検査は `pnpm run test:security`）。
+公開候補の依存監査（`pnpm audit`）は、監査例外を除いて Critical 0件、High 0件、Moderate 0件、Low 0件です。修正版が公開されている指摘は、直接依存・間接依存とも公式版へ更新済みです。`magicast` に同梱された `source-map-js` は pnpm patch で修復しています（`patches/magicast@0.5.5.patch`、回帰検査は `pnpm run test:security`）。`minimatch` と `glob` は修正版が上の major にしか無いため、テストの coverage 収集（`test-exclude`）が新しい呼び出し形に合うよう `patches/test-exclude@6.0.0.patch` を適用しています。
 
 上流に修正版が無い `deepmerge` の GHSA-gcqx-w48m-w2h4（Low）だけを、`package.json` の `pnpm.auditConfig.ignoreGhsas` で監査例外として記録しています（`patched_versions` が `<0.0.0`）。到達するのは `@nestjs/cli` 配下と jest 系の開発・ビルドのツールチェーンだけで、本番 backend イメージは `--prod` で dev 依存を剪定します。判断の理由は開発リポジトリの ADR 0041 に残しています。**ローカル patch は適用していません**（上流に修正版が出た時点で例外を外す方針です）。`braces` の GHSA-vfj7-8cjw-p6xm は上流の勧告が撤回されたため、例外にも残していません。監査指摘の存在と、製品で実際に攻撃が到達することの証明は別物として扱ってください。
 
