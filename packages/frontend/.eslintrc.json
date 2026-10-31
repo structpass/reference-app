@@ -1,0 +1,21 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "MemberExpression[object.name='fireEvent']",
+            "message": "Use userEvent (from @testing-library/user-event) instead of fireEvent for React 19 + Concurrent rendering compatibility. 例外は keyboard event 等の限定ケースのみ: 直前行に `// eslint-disable-next-line no-restricted-syntax -- @allow-fireEvent: <理由>` を付与してください。詳細: docs/04-development/TESTING_GUIDE.md"
+          }
+        ]
+      }
+    }
+  ]
+}

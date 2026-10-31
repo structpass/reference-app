@@ -1,0 +1,44 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+.next/
+tmp/
+# env 系は example を除き全パターン対象（rev-quality 2026-07-31 SEC-L2: .env.development 等の漏れを解消）
+.env*
+!.env.example
+!.env.local.example
+# 秘密鍵・証明書（v2-417 点検: *.pem / *.key / id_rsa* が未登録で、deploy 手順が扱う pem が追跡され得た）
+*.pem
+*.key
+*.p12
+*.pfx
+*.ppk
+id_rsa*
+id_ed25519*
+id_ecdsa*
+id_dsa*
+.claude/settings.local.json
+test-results/
+playwright-report/
+e2e/.auth-state.json
+deploy/backups/
+*.tsbuildinfo
+.claudeignore
+.claude/babel-*.jsx
+.claude/sp-*.html
+.claude/scheduled_tasks.lock
+*standalone*.html
+# ログ・証跡・ローカル運用スクリプト（rev-quality 2026-07-31 DEAD-M1/M2: *.log 未採用で同じ穴が再発していた）
+*.log
+.ui-evidence/
+dev-ui-verify/
+chk-ref.cmd
+chk-ref.ps1
+chk-restart.ps1
+# UI 検証の証跡（ref-* のスクショ・判定 JSON。正本は Board の evidence = rete の plans/*.png と同じ扱い）
+plans/ref-*.png
+plans/ref-*.jpg
+plans/ref-*.csv
+plans/ref-*.json
+plans/ref-*.txt

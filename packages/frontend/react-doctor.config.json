@@ -1,0 +1,23 @@
+{
+  "ignore": {
+    "tags": ["design"],
+    "overrides": [
+      {
+        "files": ["src/__tests__/**"],
+        "rules": ["react-doctor/rendering-hydration-mismatch-time"]
+      },
+      {
+        "files": [
+          "src/__tests__/factories/**",
+          "src/__tests__/mocks/**",
+          "src/__tests__/integration/_helpers/**"
+        ],
+        "rules": ["knip/exports", "knip/types", "knip/duplicates"]
+      },
+      {
+        "files": ["tests/e2e/**"],
+        "rules": ["knip/files"]
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+name: Test
+
+# 公開リポジトリは誰でも Actions を起動できるため、発火面は main と手動実行に絞る
+# （全ブランチ発火にすると、任意のブランチ push で runner を消費される）。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format check
+        run: pnpm run format:check
+      - name: Dependency audit
+        run: pnpm audit --audit-level=high
+      - name: Patched dependency regression tests
+        if: ${{ !cancelled() }}
+        run: pnpm run test:security
+      - name: Generate Prisma Client
+        run: pnpm --filter @struct-pass/backend exec prisma generate
+      - name: Build shared
+        run: pnpm --filter @struct-pass/shared build
+      - name: Backend tests with coverage threshold
+        run: pnpm --filter @struct-pass/backend test:cov
+      - name: Frontend tests with coverage threshold
+        run: pnpm --filter @struct-pass/frontend test:cov
+        env:
+          TZ: UTC
+      - name: Build frontend
+        run: pnpm --filter @struct-pass/frontend build
+      - name: Build backend
+        run: pnpm --filter @struct-pass/backend build

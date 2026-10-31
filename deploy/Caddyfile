@@ -1,0 +1,50 @@
+{$DOMAIN} {
+	encode gzip zstd
+
+	# Security headers
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Backend API
+	handle /api/v1/* {
+		reverse_proxy reference-backend:3001
+	}
+
+	# Frontend
+	handle {
+		reverse_proxy reference-frontend:3000
+	}
+}
+
+# Rete site（cmn-0403・rete と同一サーバー同居）。rete の compose は edge network 経由で参加し、
+# upstream 名は reference の backend / frontend と重ならない一意名（rete-backend / rete-frontend）を使う。
+# ドメイン値は compose の caddy 環境変数 RETE_DOMAIN から注入（reference の DOMAIN と同型・parity 節の説明済み差分）。
+{$RETE_DOMAIN} {
+	encode gzip zstd
+
+	# Security headers
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Backend API
+	handle /api/v1/* {
+		reverse_proxy rete-backend:3001
+	}
+
+	# Frontend
+	handle {
+		reverse_proxy rete-frontend:3000
+	}
+}

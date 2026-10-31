@@ -1,0 +1,20 @@
+node_modules
+dist
+.next
+out
+coverage
+*.min.js
+*.min.css
+pnpm-lock.yaml
+package-lock.json
+
+# ADR 索引は gen-adr-index.mjs の正規出力をそのまま検証する生成物。
+# Prettier の Markdown 表整形を重ねると generator --check と相互に stale になる。
+docs/decisions/README.md
+
+# jscodeshift の使い方 JSDoc 内に `**/*.test.tsx` の glob があり、prettier 3.8.1 の
+# JSDoc マークダウン解釈が `**` を太字開始として扱い、閉じタグが無いため SyntaxError になる
+# （ref-0046 で実測）。バッククォートで囲んでもインラインコード内の `**` が同様に壊れる。
+# 対象外にする代わりに JSDoc 本文を書き換えると「使い方」としての glob 表記が崩れるため、
+# rete 側 cmn-0263 の vitest.setup.ts と同じく対象外として理由を残す。
+scripts/codemods/fireEvent-to-userEvent.ts
