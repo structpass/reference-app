@@ -219,6 +219,29 @@ if (!ciCalls.has(FORMAT_CHECK)) {
 if (!ciCalls.has(STRUCTURE_CHECK) && !ciScriptFiles.has(`scripts/${STRUCTURE_CHECK}`)) {
   problems.push(`${WORKFLOW} が ${STRUCTURE_CHECK} を走らせていない（構造の検査が効かない）`);
 }
+// Service が Prisma Client を直接使っていないことの検査も、CI で走り続けること（d1098）。
+// 依存方向は構造の不変条件だが、これまで機械の見張りが無く、手で数えるしかなかった。
+const SERVICE_BOUNDARY_CHECK = 'check:service-boundary';
+if (!ciCalls.has(SERVICE_BOUNDARY_CHECK)) {
+  problems.push(
+    `${WORKFLOW} が ${SERVICE_BOUNDARY_CHECK} を走らせていない（Service が DB を直接触っても気づけない）`,
+  );
+}
+// raw SQL を Repository 内へ閉じる規則も、CI で走り続けること（d1103）。
+const RAW_SQL_CHECK = 'check:raw-sql';
+if (!ciCalls.has(RAW_SQL_CHECK)) {
+  problems.push(
+    `${WORKFLOW} が ${RAW_SQL_CHECK} を走らせていない（raw SQL が Repository の外へ漏れても気づけない）`,
+  );
+}
+// 上の 2 つの見張り自身の回帰も CI で走り続けること（d1112）。
+// 見張りが壊れて何も検出しなくなると、緑のまま規約が効かなくなる。
+const ARCH_BOUNDARY_TEST = 'test:arch-boundary';
+if (!ciCalls.has(ARCH_BOUNDARY_TEST)) {
+  problems.push(
+    `${WORKFLOW} が ${ARCH_BOUNDARY_TEST} を走らせていない（見張りが壊れても気づけない）`,
+  );
+}
 // DB が要る検査を CI へ流せない代わりに、その検査を守る側を縛る（消えたら気づける）。
 for (const name of DB_BOUND_CHECKS) {
   if (ciCalls.has(name)) {
@@ -247,8 +270,29 @@ if (!/--filter\s+@struct-pass\/shared\s+(?:run\s+)?test(\s|$)/m.test(executedSur
     `${WORKFLOW} の test ジョブが共有パッケージの試験を実行していない（置いた試験が CI で走らない）`,
   );
 }
+// 7. パッケージ単位の歯止めが CI に残っていること（d1072 / d1073）。
+//    test:cov は coverage.thresholds を効かせる唯一の経路、type-check は型の誤りを配布へ
+//    通さない門、type-check:test は試験の型を縛る門。どれも実行行を消されても他の検査は
+//    緑のままだったので、ここで中身までまとめて見る。
+//    対象を足す時はこの表に 1 行足す（検査ごとに書き分けない）。
+const REQUIRED_PACKAGE_RUNS = [
+  ['backend', 'type-check:test', '試験の型検査'],
+  ['frontend', 'type-check', '型検査'],
+  ['backend', 'test:cov', '被覆率の下限'],
+  ['frontend', 'test:cov', '被覆率の下限'],
+  ['shared', 'test', '共有パッケージの試験'],
+  ['shared', 'type-check:test', '共有パッケージの試験の型検査'],
+];
+for (const [pkg, script, label] of REQUIRED_PACKAGE_RUNS) {
+  const re = new RegExp(`--filter\\s+@struct-pass/${pkg}\\s+(?:run\\s+)?${script}(\\s|$)`, 'm');
+  if (!re.test(executedSurface(sharedJob))) {
+    problems.push(
+      `${WORKFLOW} の test ジョブが ${pkg} の ${script} を実行していない（${label}が CI で効かない）`,
+    );
+  }
+}
 
-// 7. 画面の E2E の前提検査と、E2E 自身が CI で走っていること（d808）。
+// 8. 画面の E2E の前提検査と、E2E 自身が CI で走っていること（d808）。
 //    spec を足しただけ・前提検査を足しただけでは、手で叩く時しか効かない。
 const E2E_JOB = 'e2e';
 // CI で走らせる spec の全部（d864）。e2e/ 配下の *.spec.ts を数えて作る。手で並べると、

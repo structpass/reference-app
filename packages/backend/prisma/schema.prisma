@@ -188,6 +188,9 @@ model Product {
   @@index([createdBy])
   @@index([updatedBy])
 
+  // 商品一覧をカテゴリで絞るときの検索と件数（d1248）が順次走査にならないための index
+  @@index([categoryId])
+
   receivingLines   ReceivingLine[]
   shipmentLines    ShipmentLine[]
   stocks           Stock[]
@@ -413,6 +416,8 @@ model Receiving {
   creator   User           @relation("ReceivingCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
   lines     ReceivingLine[]
 
+  // 倉庫で絞る一覧と件数（d1246）が順次走査にならないための index
+  @@index([warehouseId])
   @@map("receivings")
 }
 
@@ -458,6 +463,8 @@ model Shipment {
   creator   User          @relation("ShipmentCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
   lines     ShipmentLine[]
 
+  // 倉庫で絞る一覧と件数（d1246）が順次走査にならないための index
+  @@index([warehouseId])
   @@map("shipments")
 }
 
@@ -523,6 +530,8 @@ model Stocktaking {
   creator   User             @relation("StocktakingCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
   items     StocktakingItem[]
 
+  // 倉庫で絞る一覧と件数（d1246）が順次走査にならないための index
+  @@index([warehouseId])
   @@map("stocktakings")
 }
 

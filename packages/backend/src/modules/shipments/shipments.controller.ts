@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ExcelService } from '../../common/services/excel.service';
+import { statusLabel } from '../../common/services/status-label';
 import { JstDateService } from '../../common/services/jst-date.service';
 import { ShipmentsService } from './shipments.service';
 import { CreateShipmentDto, UpdateShipmentDto, FindShipmentsDto } from './dto';
@@ -50,12 +51,6 @@ export class ShipmentsController {
     `attachment; filename="shipments.xlsx"; filename*=UTF-8''shipments.xlsx`,
   )
   async exportExcel(@Query() query: FindShipmentsDto): Promise<StreamableFile> {
-    const statusMap: Record<string, string> = {
-      DRAFT: '下書き',
-      CONFIRMED: '確定',
-      SHIPPED: '出荷完了',
-    };
-
     const shipments = await this.shipmentsService.findAllForExport(query);
     const columns = [
       { header: '出荷番号', width: 22 },
@@ -67,10 +62,10 @@ export class ShipmentsController {
     ];
     const rows = shipments.map((s) => [
       s.shipmentNo,
-      this.jstDate.toExportDateTime(s.shipmentDate),
+      this.jstDate.toExportDate(s.shipmentDate),
       String(s.warehouseId),
       s.destination,
-      statusMap[s.status] ?? s.status,
+      statusLabel(s.status),
       this.jstDate.toExportDateTime(s.createdAt),
     ]);
 

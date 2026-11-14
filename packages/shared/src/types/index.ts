@@ -7,7 +7,14 @@ export * from './shipping';
 export * from './stock';
 export * from './order';
 export * from './permission';
-export * from './object-type-permission';
+export {
+  OBJECT_TYPE_KEY_PATTERN,
+  isObjectTypePermissionId,
+  isValidObjectTypeKey,
+  objectTypeKeyFromPermissionId,
+  objectTypePermissionId,
+} from './object-type-permission';
+export type { ObjectTypePermissionId } from './object-type-permission';
 export * from './preset-object-type';
 export * from './system-setting';
 export * from './table-pagination-setting';

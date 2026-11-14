@@ -98,12 +98,6 @@ export class ObjectTypesRepository {
     return this.prisma.objectType.findUnique({ where: { key } });
   }
 
-  // TODO(ref-0013 Phase 2): CustomRecord の objectTypeId 参照解決で使用予定。
-  // Phase 1 では read 経路（findAll / findByKey）のみ配線し、id 引きは土台として先行配置している。
-  findById(id: number): Promise<ObjectType | null> {
-    return this.prisma.objectType.findUnique({ where: { id } });
-  }
-
   /** 種別に紐づく自由定義データをページング取得する（ref-0076）。並びは id asc で安定させる。 */
   async findRecords(objectTypeId: number, page: number, limit: number): Promise<CustomRecordPage> {
     const where: Prisma.CustomRecordWhereInput = { objectTypeId };

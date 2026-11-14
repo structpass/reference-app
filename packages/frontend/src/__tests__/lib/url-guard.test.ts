@@ -145,14 +145,13 @@ describe('接続先 URL のガード配線（v2-420）', () => {
     );
   });
 
-  it('rete-display-preference: NEXT_PUBLIC_RETE_API_URL が危険スキームなら既定値へ落ちること', async () => {
+  it('ret-0037 で使っていた NEXT_PUBLIC_RETE_API_URL は、もう connect-src に入らない（d1264/d1265）', async () => {
     vi.stubEnv('NEXT_PUBLIC_RETE_API_URL', 'javascript:alert(1)');
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 });
-    vi.stubGlobal('fetch', fetchMock);
-    const { fetchReteDisplayPreference } = await import('@/lib/rete-display-preference');
-    await fetchReteDisplayPreference();
-    const calledUrl = String(fetchMock.mock.calls[0]?.[0] ?? '');
-    expect(calledUrl.startsWith('javascript:')).toBe(false);
-    expect(calledUrl.startsWith('http://localhost:3011/api/v1')).toBe(true);
+    const { buildCsp } = await import('@/middleware');
+    const csp = buildCsp('nonce');
+    const connectSrc = csp.split('; ').find((d) => d.startsWith('connect-src '))!;
+    expect(connectSrc).not.toContain('null');
+    expect(connectSrc).not.toContain('javascript:');
+    expect(connectSrc).not.toContain('3011');
   });
 });

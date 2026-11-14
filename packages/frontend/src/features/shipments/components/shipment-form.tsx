@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Shipment, ShipmentLine, Warehouse, Carrier } from '@struct-pass/shared';
@@ -20,9 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ProductLineCell } from '@/components/shared/product-line-cell';
-import { useProductLineSelection } from '@/hooks/use-product-line-selection';
 import { ProductSearchModal } from '@/components/shared/product-search-modal';
+import { WarehouseField, mapWarehouse } from '@/components/shared/warehouse-field';
+import {
+  createPlannedActualQtyColumns,
+  createProductColumn,
+} from '@/components/shared/document-line-columns';
+import { useDocumentLines } from '@/hooks/use-document-lines';
 import { useSelectOptions } from '@/hooks/use-select-options';
 import { useDocumentPage } from '@/hooks/use-document-page';
 import { formatISODate, todayISODate } from '@/lib/utils';
@@ -40,11 +44,40 @@ interface ShipmentFormProps {
   hideActions?: boolean;
 }
 
-const mapWarehouse = (w: Warehouse) => ({ value: String(w.id), label: w.name });
 const mapCarrier = (c: Carrier) => ({ value: String(c.id), label: c.name });
 
 function createEmptyLine(lineNo: number): ShipmentLineData {
   return { lineNo, productId: '', plannedQty: 1 };
+}
+
+/**
+ * 出荷伝票の状態遷移（確定・出荷完了）のボタン定義。view ページの右上アクション行と
+ * 伝票フォームの双方が同じ定義を使う。
+ */
+export function useShipmentStatusActions(doc?: { id: number | string; status: string } | null) {
+  const { confirmDocument, ship, transitioning } = useDocumentPage({
+    basePath: '/shipments',
+    entityName: '出荷',
+  });
+
+  const statusActions: StatusAction[] = [];
+  if (doc?.status === 'DRAFT') {
+    statusActions.push({
+      label: '確定する',
+      onAction: () => confirmDocument(doc.id),
+      confirmTitle: '出荷を確定',
+      confirmDescription: '出荷を確定すると在庫が減算されます。よろしいですか？',
+    });
+  }
+  if (doc?.status === 'CONFIRMED') {
+    statusActions.push({
+      label: '出荷完了',
+      onAction: () => ship(doc.id),
+      confirmTitle: '出荷完了',
+      confirmDescription: '出荷を完了にしますか？',
+    });
+  }
+  return { statusActions, transitioning };
 }
 
 export function ShipmentForm({
@@ -66,29 +99,9 @@ export function ShipmentForm({
     '/carriers',
     useCallback(mapCarrier, []),
   );
-  const { confirmDocument, ship, transitioning } = useDocumentPage({
-    basePath: '/shipments',
-    entityName: '出荷',
-  });
+  const { statusActions, transitioning } = useShipmentStatusActions(doc);
 
   const today = todayISODate();
-  const [lines, setLines] = useState<ShipmentLineData[]>(
-    defaultLines ??
-      doc?.lines?.map((l) => ({
-        lineNo: l.lineNo,
-        productId: l.productId,
-        plannedQty: l.plannedQty,
-        actualQty: l.actualQty ?? undefined,
-      })) ?? [createEmptyLine(1)],
-  );
-
-  const {
-    productSearchOpen,
-    setProductSearchOpen,
-    openProductSearch,
-    handleProductSelect,
-    getProductDisplay,
-  } = useProductLineSelection(setLines, doc?.lines);
 
   const {
     register,
@@ -115,85 +128,38 @@ export function ShipmentForm({
     },
   });
 
+  const {
+    lines,
+    setLines,
+    productSearchOpen,
+    setProductSearchOpen,
+    openProductSearch,
+    handleProductSelect,
+    getProductDisplay,
+  } = useDocumentLines<ShipmentFormData, ShipmentLineData>({
+    setValue,
+    field: 'lines',
+    initialLines: defaultLines ??
+      doc?.lines?.map((l) => ({
+        lineNo: l.lineNo,
+        productId: l.productId,
+        plannedQty: l.plannedQty,
+        actualQty: l.actualQty ?? undefined,
+      })) ?? [createEmptyLine(1)],
+    existingLines: doc?.lines,
+  });
+
   const warehouseId = watch('warehouseId');
   const carrierId = watch('carrierId');
-
-  useEffect(() => {
-    setValue('lines', lines);
-  }, [lines, setValue]);
 
   const handleFormSubmit = handleSubmit((data) => {
     onSubmit?.({ ...data, lines });
   });
 
   const lineColumns: LineColumn<ShipmentLineData>[] = [
-    {
-      key: 'productId',
-      label: '商品',
-      width: '40%',
-      render: (line, index) => (
-        <ProductLineCell
-          isView={isView}
-          productId={line.productId}
-          getProductDisplay={getProductDisplay}
-          onSearch={() => openProductSearch(index)}
-        />
-      ),
-    },
-    {
-      key: 'plannedQty',
-      label: '予定数量',
-      width: '20%',
-      render: (line, index, onChange) =>
-        isView ? (
-          <span>{line.plannedQty}</span>
-        ) : (
-          <Input
-            type="number"
-            min={1}
-            value={line.plannedQty}
-            onChange={(e) => onChange(index, { ...line, plannedQty: Number(e.target.value) || 0 })}
-          />
-        ),
-    },
-    {
-      key: 'actualQty',
-      label: '実績数量',
-      width: '20%',
-      render: (line, index, onChange) =>
-        isView ? (
-          <span>{line.actualQty ?? '-'}</span>
-        ) : (
-          <Input
-            type="number"
-            min={0}
-            value={line.actualQty ?? ''}
-            onChange={(e) => {
-              const val = e.target.value === '' ? undefined : Number(e.target.value);
-              onChange(index, { ...line, actualQty: val });
-            }}
-          />
-        ),
-    },
+    createProductColumn<ShipmentLineData>(isView, { getProductDisplay, openProductSearch }),
+    ...createPlannedActualQtyColumns<ShipmentLineData>(isView),
   ];
-
-  const statusActions: StatusAction[] = [];
-  if (doc?.status === 'DRAFT') {
-    statusActions.push({
-      label: '確定する',
-      onAction: () => confirmDocument(doc.id),
-      confirmTitle: '出荷を確定',
-      confirmDescription: '出荷を確定すると在庫が減算されます。よろしいですか？',
-    });
-  }
-  if (doc?.status === 'CONFIRMED') {
-    statusActions.push({
-      label: '出荷完了',
-      onAction: () => ship(doc.id),
-      confirmTitle: '出荷完了',
-      confirmDescription: '出荷を完了にしますか？',
-    });
-  }
 
   return (
     <>
@@ -226,29 +192,13 @@ export function ShipmentForm({
               />
             </FormField>
 
-            <FormField label="倉庫" required={!isView} error={errors.warehouseId?.message}>
-              {isView ? (
-                <span className="text-sm">
-                  {warehouseOpts.find((o) => o.value === String(warehouseId))?.label ?? '-'}
-                </span>
-              ) : (
-                <Select
-                  value={warehouseId ? String(warehouseId) : ''}
-                  onValueChange={(val) => setValue('warehouseId', Number(val))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="倉庫を選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouseOpts.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </FormField>
+            <WarehouseField
+              isView={isView}
+              value={warehouseId}
+              options={warehouseOpts}
+              error={errors.warehouseId?.message}
+              onChange={(val) => setValue('warehouseId', val)}
+            />
 
             <FormField
               label="出荷先"
@@ -261,9 +211,11 @@ export function ShipmentForm({
 
             <FormField label="運送会社" error={errors.carrierId?.message}>
               {isView ? (
-                <span className="text-sm">
-                  {carrierOpts.find((o) => o.value === String(carrierId))?.label ?? '-'}
-                </span>
+                <Input
+                  readOnly
+                  disabled
+                  value={carrierOpts.find((o) => o.value === String(carrierId))?.label ?? '-'}
+                />
               ) : (
                 <Select
                   value={carrierId ? String(carrierId) : ''}

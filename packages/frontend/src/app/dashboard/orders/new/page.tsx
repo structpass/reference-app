@@ -6,9 +6,12 @@ import type { Order } from '@struct-pass/shared';
 import { OrderForm } from '@/features/orders';
 import type { OrderFormData } from '@/features/orders';
 import { useCrudApi } from '@/hooks/use-crud-api';
-import { PageShell } from '@/components/shared/page-shell';
+import { EditPageShell } from '@/components/shared/edit-page-shell';
 import { FormCard } from '@/components/shared/form-card';
+import { EditPageActions } from '@/components/shared/detail-page-actions';
 import { FeatureGuard } from '@/components/shared/feature-guard';
+
+const FORM_ID = 'orders-new-form';
 
 export default function NewOrderPage() {
   return (
@@ -32,11 +35,29 @@ function NewOrderPageBody() {
     }
   };
 
+  // 登録の導線はユーザー登録画面と同じく、画面右上のアクション行へ置く（d1163）。
   return (
-    <PageShell title="発注登録">
+    <EditPageShell
+      title="発注登録"
+      compact
+      actions={
+        <EditPageActions
+          formId={FORM_ID}
+          submitLabel="発注登録"
+          submitting={submitting}
+          listHref="/dashboard/orders"
+        />
+      }
+    >
       <FormCard>
-        <OrderForm mode="create" onSubmit={handleSubmit} submitting={submitting} />
+        <OrderForm
+          mode="create"
+          onSubmit={handleSubmit}
+          submitting={submitting}
+          formId={FORM_ID}
+          hideActions
+        />
       </FormCard>
-    </PageShell>
+    </EditPageShell>
   );
 }

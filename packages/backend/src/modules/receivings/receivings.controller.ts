@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ExcelService } from '../../common/services/excel.service';
+import { statusLabel } from '../../common/services/status-label';
 import { JstDateService } from '../../common/services/jst-date.service';
 import { ReceivingsService } from './receivings.service';
 import { CreateReceivingDto, UpdateReceivingDto, FindReceivingsDto } from './dto';
@@ -50,12 +51,6 @@ export class ReceivingsController {
     `attachment; filename="receivings.xlsx"; filename*=UTF-8''receivings.xlsx`,
   )
   async exportExcel(@Query() query: FindReceivingsDto): Promise<StreamableFile> {
-    const statusMap: Record<string, string> = {
-      DRAFT: '下書き',
-      CONFIRMED: '確定',
-      COMPLETED: '完了',
-    };
-
     const receivings = await this.receivingsService.findAllForExport(query);
     const columns = [
       { header: '入荷番号', width: 22 },
@@ -67,10 +62,10 @@ export class ReceivingsController {
     ];
     const rows = receivings.map((r) => [
       r.receivingNo,
-      this.jstDate.toExportDateTime(r.receivingDate),
+      this.jstDate.toExportDate(r.receivingDate),
       String(r.warehouseId),
       r.supplier?.name ?? '',
-      statusMap[r.status] ?? r.status,
+      statusLabel(r.status),
       this.jstDate.toExportDateTime(r.createdAt),
     ]);
 

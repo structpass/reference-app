@@ -254,6 +254,56 @@ test('共有パッケージの試験が CI から消えると赤くなる（d808
   }
 });
 
+test('共有パッケージの試験の型検査が CI から消えると赤くなる（d1052）', () => {
+  // TESTING_STRATEGY.md は試験と型検査の両方が配線されている前提で書かれているのに、
+  // 型検査の実行行だけ見張られておらず、消えても緑のままだった。
+  const dir = makeFixture();
+  try {
+    dropCiLines(dir, ['--filter @struct-pass/shared type-check:test']);
+    const { status, stderr } = runIn(dir);
+    assert.equal(status, 1);
+    assert.match(stderr, /shared の type-check:test を実行していない/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('型検査の実行行が CI から消えると赤くなる（d1073）', () => {
+  // backend と frontend の型検査は、型の誤りを配布へ通さない門。実行行を echo に
+  // 差し替えても他の検査が緑のままだったので、中身まで見張る。
+  const cases = [
+    ['backend', 'type-check:test'],
+    ['frontend', 'type-check'],
+  ];
+  for (const [pkg, script] of cases) {
+    const dir = makeFixture();
+    try {
+      dropCiLines(dir, [`--filter @struct-pass/${pkg} ${script}`]);
+      const { status, stderr } = runIn(dir);
+      assert.equal(status, 1, `${pkg} の ${script} を消しても緑のまま`);
+      assert.match(stderr, new RegExp(`${pkg} の ${script} を実行していない`));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test('被覆率を縛る test:cov が CI から消えると赤くなる（d1072）', () => {
+  // vitest.config.ts の coverage.thresholds は test:cov でしか効かない。実行行が消えても
+  // 他が緑のままだと、下限が黙って外れる。両パッケージぶんを見る。
+  for (const pkg of ['backend', 'frontend']) {
+    const dir = makeFixture();
+    try {
+      dropCiLines(dir, [`--filter @struct-pass/${pkg} test:cov`]);
+      const { status, stderr } = runIn(dir);
+      assert.equal(status, 1, `${pkg} の test:cov を消しても緑のまま`);
+      assert.match(stderr, new RegExp(`${pkg} の test:cov を実行していない`));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
 test('画面の E2E のジョブが CI から消えると赤くなる（d808）', () => {
   const dir = makeFixture();
   try {
@@ -455,4 +505,26 @@ test('E2E の前提検査の回帰が CI から消えると赤くなる（d928�
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('この検査自身が CI の test ジョブで走っている（d1076）', () => {
+  // 配線検査が有効かどうかは、この試験が CI で走って初めて分かる。実行行を消されても
+  // 他の検査は緑のままだったので、型検査の試験（type-check.test.mjs）と同じ自己確認を置く。
+  // 実行行だけを見る（コメントにも test:ci-wiring が現れるため、本文全体では誤認する）。
+  const yaml = readFileSync(new URL(`../${WORKFLOW}`, import.meta.url), 'utf8');
+  const runLines = yaml
+    .split(/\r?\n/)
+    .filter((l) => /^\s*run:/.test(l))
+    .join('\n');
+  assert.match(
+    runLines,
+    /pnpm\s+(?:run\s+)?test:ci-wiring(?=\s|$)/m,
+    'CI が scripts/check-ci-wiring.test.mjs を走らせていない（配線の見張りが試されない）',
+  );
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.match(
+    pkg.scripts['test:ci-wiring'] ?? '',
+    /node --test scripts\/check-ci-wiring\.test\.mjs/,
+    'root に配線検査テストの入口（test:ci-wiring）が無い',
+  );
 });

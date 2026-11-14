@@ -73,6 +73,43 @@ describe('useListPage', () => {
     expect(result.current.pagination.page).toBe(1);
   });
 
+  it('再試行中に同じ空条件が届いても取得を重ねないこと', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.mocked(apiClient.get)
+      .mockRejectedValueOnce(new Error('first request failed'))
+      .mockImplementation(async () => {
+        await gate;
+        return { data: { data: [{ id: 1, name: '再取得' }], meta: null } };
+      });
+    const { result } = renderHook(() =>
+      useListPage({ tableId: 'products', basePath: '/products', entityName: '商品' }),
+    );
+    await waitFor(() => expect(result.current.loadError).toBe(true));
+
+    act(() => result.current.retryLoad());
+    expect(apiClient.get).toHaveBeenCalledTimes(2);
+    // FilterBarの初期通知が再試行の後に届く条件を、時間待ちなしで再現する。
+    for (const filters of [{}, { search: undefined }, { search: '', categoryId: undefined }]) {
+      act(() => result.current.handleFilterChange(filters));
+      expect(apiClient.get).toHaveBeenCalledTimes(2);
+      expect(result.current.loading).toBe(true);
+    }
+
+    await act(async () => release());
+    await waitFor(() => expect(result.current.loadError).toBe(false));
+    expect(result.current.items).toEqual([{ id: 1, name: '再取得' }]);
+
+    // 同じ条件でも2ページ目からは1ページ目へ戻し、そのページを取り直す。
+    act(() => result.current.pagination.setPage(2));
+    await waitFor(() => expect(apiClient.get).toHaveBeenCalledTimes(3));
+    act(() => result.current.handleFilterChange({}));
+    await waitFor(() => expect(apiClient.get).toHaveBeenCalledTimes(4));
+    expect(result.current.pagination.page).toBe(1);
+  });
+
   it('initialSortでソートの初期値を設定できること', async () => {
     const { result } = renderHook(() =>
       useListPage({

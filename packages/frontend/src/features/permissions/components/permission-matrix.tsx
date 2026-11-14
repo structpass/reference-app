@@ -43,23 +43,25 @@ export function PermissionMatrix({
     <div className="space-y-6">
       <div
         ref={listRef}
-        className="relative max-h-[70vh] overflow-x-auto overflow-y-auto rounded-lg border border-[var(--sp-line-warm)]"
+        data-list-compact
+        className="relative max-h-[70vh] overflow-x-auto overflow-y-auto border border-[var(--sp-line-warm)] bg-[var(--sp-card)]"
         onMouseOver={onMouseOver}
         onMouseLeave={onMouseLeave}
       >
         <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10 bg-[var(--sp-paper-2)]">
-            <tr className="border-b-2 border-[var(--sp-line-warm)]">
-              <th className="min-w-[140px] px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-[var(--sp-text-warm)]">
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <th data-static className="relative h-8 min-w-[140px] px-4 text-left align-middle">
                 カテゴリ
               </th>
-              <th className="min-w-[200px] px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-[var(--sp-text-warm)]">
+              <th data-static className="relative h-8 min-w-[200px] px-4 text-left align-middle">
                 機能名
               </th>
               {ALL_ROLES.map((role) => (
                 <th
                   key={role}
-                  className="min-w-[120px] px-2 py-3 text-center text-sm font-semibold uppercase tracking-wide text-[var(--sp-text-warm)]"
+                  data-static
+                  className="relative h-8 min-w-[120px] px-2 text-center align-middle"
                 >
                   {ROLE_LABELS[role]}
                   {role === 'SYS_ADMIN' && (
@@ -79,20 +81,14 @@ export function PermissionMatrix({
                   key={feat.id}
                   className="sp-row-pillable border-b border-[var(--sp-line-warm-2)] last:border-b-0"
                 >
-                  {idx === 0 && (
-                    <td
-                      rowSpan={categoryFeatures.length}
-                      // rowSpan セルは不透明な独自背景（bg-paper-2）を持つカテゴリラベル列のため、
-                      // sp-row-pillable の前面化（z-index:1）から明示的に除外し帯の下へ沈める
-                      // （前面化すると背景が帯を隠しカテゴリ列だけ hover 効果が消えてしまう）。
-                      // .sp-row-pillable > * は @layer 外（unlayered）のため Tailwind の
-                      // @layer utilities より優先度が高く、! 修飾子で明示的に上書きする
-                      // （code-reviewer 検出・素の relative z-0 では打ち消せない）。
-                      className="!relative !z-0 border-r border-[var(--sp-line-warm)] bg-[var(--sp-paper-2)] px-4 py-2 align-top font-medium text-[var(--sp-text-warm)]"
-                    >
-                      {cat.key}. {cat.label}
-                    </td>
-                  )}
+                  <td
+                    // カテゴリ列は行ごとのセルにし、見出しはグループの先頭行だけに出す（d1172）。
+                    // rowSpan で1セルにまとめると、そのセルが先頭行の背景を全行へ塗ってしまい、
+                    // 行の縞と行区切り線がカテゴリ列だけ途切れて一覧画面の表と揃わない。
+                    className="px-4 py-2 align-top font-medium text-[var(--sp-text-warm)]"
+                  >
+                    {idx === 0 ? `${cat.key}. ${cat.label}` : null}
+                  </td>
                   <td className="px-4 py-2">
                     <span className="font-medium">{feat.name}</span>
                     {feat.crudSupport.create === false && (

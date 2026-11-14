@@ -1,14 +1,18 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { OrderForm } from '@/features/orders';
+import { OrderForm, useOrderStatusActions } from '@/features/orders';
 import type { OrderWithItems } from '@/features/orders';
 import { useCrudApi } from '@/hooks/use-crud-api';
 import { useFetchOne } from '@/hooks/use-fetch-one';
-import { PageShell } from '@/components/shared/page-shell';
-import { EditPageLoader, EditPageNotFound } from '@/components/shared/edit-page-shell';
+import {
+  EditPageShell,
+  EditPageLoader,
+  EditPageNotFound,
+} from '@/components/shared/edit-page-shell';
 import { FormCard } from '@/components/shared/form-card';
 import { LoadFailed } from '@/components/shared/load-failed';
+import { DocumentViewActions } from '@/components/shared/detail-page-actions';
 import { FeatureGuard } from '@/components/shared/feature-guard';
 
 export default function ViewOrderPage() {
@@ -22,15 +26,23 @@ export default function ViewOrderPage() {
 function ViewOrderPageBody() {
   const { id } = useParams<{ id: string }>();
   const { fetchOne } = useCrudApi<OrderWithItems>('/orders', '発注');
-  const { item: doc, loading, loadError, reload } = useFetchOne<OrderWithItems>(fetchOne, id);
+  const {
+    item: doc,
+    loading,
+    loadError,
+    reload,
+    retrying,
+  } = useFetchOne<OrderWithItems>(fetchOne, id);
+  const { statusActions, transitioning } = useOrderStatusActions(doc);
 
-  if (loading) {
+  // 再試行の間はローダーへ戻さない（失敗の表示のその場で処理中を出す・d1039）。
+  if (loading && !retrying) {
     return <EditPageLoader />;
   }
 
-  if (loadError) {
+  if (loadError || retrying) {
     return (
-      <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
     );
   }
 
@@ -38,15 +50,23 @@ function ViewOrderPageBody() {
     return <EditPageNotFound message="発注データが見つかりませんでした" />;
   }
 
-  // マスタ系 view（EditPageShell + 編集/一覧へ戻るアクションバー）と異なり、
-  // トランザクション系 view はアクションバー無しの PageShell を使う。
-  // 編集・一覧遷移・ステータス遷移などの導線は伝票フォーム内の DocumentForm が
-  // backPath / editPath / statusActions として持つため、シェル側に重複配置しない。
+  // 伝票系の参照もマスタ系の参照と同じく、導線（編集・状態遷移・戻る）を
+  // 画面右上のアクション行へ置く。表の内側に戻るボタンを置かない（d1163）。
   return (
-    <PageShell title="発注参照">
+    <EditPageShell
+      title="発注参照"
+      compact
+      actions={
+        <DocumentViewActions
+          editHref={doc.status === 'DRAFT' ? `/dashboard/orders/${doc.id}` : undefined}
+          statusActions={statusActions}
+          transitioning={transitioning}
+        />
+      }
+    >
       <FormCard>
-        <OrderForm mode="view" document={doc} />
+        <OrderForm mode="view" document={doc} hideActions />
       </FormCard>
-    </PageShell>
+    </EditPageShell>
   );
 }

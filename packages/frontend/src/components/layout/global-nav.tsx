@@ -24,7 +24,7 @@ interface GlobalNavTab {
 
 /**
  * rete packages/frontend/src/features/shell/lib/nav-config.ts の SHELL_TABS と同順・同ラベルを維持する
- * （Home / Desk / File / System / Mock / Setting / Model / Backlog・ref-0011）。
+ * （Home / Desk / File / System / Mock / Setting / Model・ref-0011。Board 廃止で rete 側の Backlog タブも無い）。
  * ラベルは英語・単数形（rete cmn-0114 準拠・ref-0020 で追随）。英語化はグローバルメニューのみで、
  * 各画面内タイトルは日本語のまま（スコープ限定）。
  * - system は本システム自身なので retePath=null（リンクせず現在地としてアクティブ表示・位置のみ Rete に合わせ4番目）。
@@ -39,7 +39,6 @@ const GLOBAL_NAV_TABS: GlobalNavTab[] = [
   { key: 'mock', label: 'Mock', retePath: null, disabled: true },
   { key: 'settings', label: 'Setting', retePath: '/settings' },
   { key: 'model', label: 'Model', retePath: '/model' },
-  { key: 'backlog', label: 'Backlog', retePath: '/backlog' },
 ];
 
 /**
@@ -155,7 +154,7 @@ export function GlobalNav() {
   return (
     // モバイル（md 未満）は意図的に非表示（rete との差異）。タブ 7 個は狭幅に収まらず、
     // モバイル導線はハンバーガー → サイドバーに寄せる。
-    // hom-0064: viewport の 50% に幅を制限する絶対中央配置(left-1/2)は8タブが収まらず折り返す
+    // hom-0064: viewport の 50% に幅を制限する絶対中央配置(left-1/2)は8タブ（当時）が収まらず折り返す
     // 原因だったため廃止。flex-1 + justify-center で残り幅いっぱいに中央寄せする。
     // ref-0020: 全タブ等間隔。gap は globals.css の .nav-tabs（--sp-nav-tab-gap）が単一ソース
     // （Tailwind gap-* を書くとセパレータ ::before の left と手動同期になるため書かない）。

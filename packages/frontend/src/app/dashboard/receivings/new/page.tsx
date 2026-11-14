@@ -6,9 +6,12 @@ import type { Receiving } from '@struct-pass/shared';
 import { ReceivingForm } from '@/features/receivings';
 import type { ReceivingFormData } from '@/features/receivings';
 import { useCrudApi } from '@/hooks/use-crud-api';
-import { PageShell } from '@/components/shared/page-shell';
+import { EditPageShell } from '@/components/shared/edit-page-shell';
 import { FormCard } from '@/components/shared/form-card';
+import { EditPageActions } from '@/components/shared/detail-page-actions';
 import { FeatureGuard } from '@/components/shared/feature-guard';
+
+const FORM_ID = 'receivings-new-form';
 
 export default function NewReceivingPage() {
   return (
@@ -32,11 +35,29 @@ function NewReceivingPageBody() {
     }
   };
 
+  // 登録の導線はユーザー登録画面と同じく、画面右上のアクション行へ置く（d1163）。
   return (
-    <PageShell title="入荷登録">
+    <EditPageShell
+      title="入荷登録"
+      compact
+      actions={
+        <EditPageActions
+          formId={FORM_ID}
+          submitLabel="入荷登録"
+          submitting={submitting}
+          listHref="/dashboard/receivings"
+        />
+      }
+    >
       <FormCard>
-        <ReceivingForm mode="create" onSubmit={handleSubmit} submitting={submitting} />
+        <ReceivingForm
+          mode="create"
+          onSubmit={handleSubmit}
+          submitting={submitting}
+          formId={FORM_ID}
+          hideActions
+        />
       </FormCard>
-    </PageShell>
+    </EditPageShell>
   );
 }

@@ -38,6 +38,7 @@ function EditShipmentPageBody() {
     loading,
     loadError,
     reload,
+    retrying,
   } = useFetchOne<ShipmentWithLines>(fetchOne, id, (d) => {
     if (d.status !== 'DRAFT') {
       router.replace(`/dashboard/shipments/${id}/view`);
@@ -68,10 +69,10 @@ function EditShipmentPageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !doc ? (
         <EditPageNotFound message="出荷データが見つかりませんでした" />
       ) : (

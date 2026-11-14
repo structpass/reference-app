@@ -19,11 +19,8 @@ const AUTH_COOKIE_NAME = 'sp_access_token';
 // env は他の接続先と同じ入口（lib/url-guard）で検証してから使う（v2-438）。`||` だけでは
 // `javascript:` 等の危険値をそのまま connect-src の材料にしてしまうため、http(s) 以外は既定値へ落とす。
 const API_URL = resolveHttpUrl(process.env.NEXT_PUBLIC_API_URL, 'http://localhost:3001/api/v1');
-// ref-0037: rete backend の表示個人設定 API をログイン後に直接 fetch するため connect-src へ許可する。
-const RETE_API_URL = resolveHttpUrl(
-  process.env.NEXT_PUBLIC_RETE_API_URL,
-  'http://localhost:3011/api/v1',
-);
+// d1264/d1265: rete backend の表示個人設定 API を直接 fetch する仕組みは廃止したため、
+// connect-src へ rete の API オリジンを足さない（ブラウザから rete API を呼ぶ経路は無い）。
 
 // safeOrigin / buildCsp は test seam として export する（src/__tests__/middleware.test.ts）。
 // middleware の CSP 生成は本番の全 script 実行を左右するため、純関数部分をユニットテストで固定する。
@@ -45,7 +42,6 @@ export function safeOrigin(url: string): string {
 export function buildCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV !== 'production';
   const apiOrigin = safeOrigin(API_URL);
-  const reteApiOrigin = safeOrigin(RETE_API_URL);
   // 開発時は React Refresh / dev overlay が inline・eval を使うため従来どおり許可し、
   // 本番だけ nonce + strict-dynamic で inline 注入を遮断する（ref-0083・写し元 rete cmn-0350）。
   // strict-dynamic: nonce 付きスクリプトが動的ロードする後続スクリプトへ信頼が自動伝搬する。
@@ -83,7 +79,7 @@ export function buildCsp(nonce: string): string {
     ...(styleElemSrc ? [`style-src-elem ${styleElemSrc}`, "style-src-attr 'unsafe-inline'"] : []),
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''}${reteApiOrigin ? ` ${reteApiOrigin}` : ''}${isDev ? ' ws: wss:' : ''}`,
+    `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''}${isDev ? ' ws: wss:' : ''}`,
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

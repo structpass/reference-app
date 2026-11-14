@@ -4,9 +4,6 @@
  */
 export const SYSTEM_SETTING_VALUE_TYPES = ['STRING', 'NUMBER', 'BOOLEAN', 'JSON'] as const;
 
-/** 既知の設定値の型。DB の value_type は文字列列なので、読む側でこれに絞ってから判定する。 */
-export type SystemSettingValueType = (typeof SYSTEM_SETTING_VALUE_TYPES)[number];
-
 export interface SystemSetting {
   id: string;
   key: string;

@@ -8,13 +8,7 @@ import { categorySchema, type CategoryFormData } from '../lib/validations';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { StatusSelect } from '@/components/shared/status-select';
 import { ArrowLeft, Pencil, Plus, Save } from 'lucide-react';
 
 const statusOptions = [
@@ -91,24 +85,13 @@ export function CategoryForm({
         <Input id="name" disabled={isView} {...register('name')} />
       </FormField>
 
-      <FormField label="ステータス" error={errors.status?.message}>
-        <Select
-          value={statusValue}
-          onValueChange={(val) => setValue('status', val as CategoryFormData['status'])}
-          disabled={isView}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="ステータスを選択" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
+      <StatusSelect
+        value={statusValue}
+        options={statusOptions}
+        onChange={(val) => setValue('status', val as CategoryFormData['status'])}
+        error={errors.status?.message}
+        disabled={isView}
+      />
 
       {!hideActions && (
         <div className="flex gap-4 pt-4">

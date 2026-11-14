@@ -29,7 +29,13 @@ export default function EditProductPage() {
 function EditProductPageBody() {
   const { id } = useParams<{ id: string }>();
   const { fetchProduct, updateProduct } = useProducts();
-  const { item: product, loading, loadError, reload } = useFetchOne<Product>(fetchProduct, id);
+  const {
+    item: product,
+    loading,
+    loadError,
+    reload,
+    retrying,
+  } = useFetchOne<Product>(fetchProduct, id);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: ProductFormData) => {
@@ -63,10 +69,10 @@ function EditProductPageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !product ? (
         <EditPageNotFound message="商品が見つかりませんでした" />
       ) : (

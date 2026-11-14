@@ -30,7 +30,13 @@ export default function EditSupplierPage() {
 function EditSupplierPageBody() {
   const { id } = useParams<{ id: string }>();
   const { fetchOne, update } = useCrudApi<Supplier>('/suppliers', '仕入先');
-  const { item: supplier, loading, loadError, reload } = useFetchOne<Supplier>(fetchOne, id);
+  const {
+    item: supplier,
+    loading,
+    loadError,
+    reload,
+    retrying,
+  } = useFetchOne<Supplier>(fetchOne, id);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: SupplierFormData) => {
@@ -62,10 +68,10 @@ function EditSupplierPageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !supplier ? (
         <EditPageNotFound message="仕入先が見つかりませんでした" />
       ) : (

@@ -32,7 +32,6 @@ const mockRepo = {
   findAll: jest.fn(),
   findByKey: jest.fn(),
   findByKeyBare: jest.fn(),
-  findById: jest.fn(),
   findRecords: jest.fn(),
   findRecordInObjectType: jest.fn(),
   createRecordAtomic: jest.fn(),

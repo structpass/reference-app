@@ -78,12 +78,13 @@ export function ImportResultPanel({ feedback }: ImportResultPanelProps) {
           </div>
           <div
             ref={listRef}
-            className="relative mt-2 max-h-80 overflow-auto rounded-md border"
+            data-list-compact
+            className="relative mt-2 max-h-80 overflow-auto border border-[var(--sp-line-warm)] bg-[var(--sp-card)]"
             onMouseOver={onMouseOver}
             onMouseLeave={onMouseLeave}
           >
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10">
                 <TableRow>
                   <TableHead className="w-20">行番号</TableHead>
                   <TableHead className="w-40">列</TableHead>

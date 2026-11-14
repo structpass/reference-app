@@ -16,6 +16,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiProduces } from '@ne
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators';
 import { ExcelService } from '../../common/services/excel.service';
+import { statusLabel } from '../../common/services/status-label';
 import { JstDateService } from '../../common/services/jst-date.service';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto, UpdateCategoryDto, FindCategoriesDto } from './dto';
@@ -49,11 +50,6 @@ export class CategoriesController {
     `attachment; filename="categories.xlsx"; filename*=UTF-8''categories.xlsx`,
   )
   async exportExcel(@Query() query: FindCategoriesDto): Promise<StreamableFile> {
-    const statusMap: Record<string, string> = {
-      ACTIVE: '有効',
-      INACTIVE: '無効',
-    };
-
     const categories = await this.categoriesService.findAllForExport(query);
     const columns = [
       { header: 'カテゴリーコード', width: 18 },
@@ -64,7 +60,7 @@ export class CategoriesController {
     const rows = categories.map((c) => [
       c.code,
       c.name,
-      statusMap[c.status] ?? c.status,
+      statusLabel(c.status),
       this.jstDate.toExportDateTime(c.createdAt),
     ]);
 

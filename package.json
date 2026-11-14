@@ -19,10 +19,14 @@
     "test:ci-wiring": "node --test scripts/check-ci-wiring.test.mjs",
     "test:e2e-preflight": "node --test scripts/e2e-preflight.test.mjs",
     "test:migration-history": "node --test scripts/check-migration-history.test.mjs scripts/check-migration-preconditions.test.mjs",
+    "test:migrate-prune": "node --test scripts/migrate-prune.test.mjs",
     "repair:migration-history": "node scripts/repair-migration-history.mjs",
     "test:type-check": "node --test scripts/type-check.test.mjs",
     "test:cov": "pnpm --filter \"./packages/**\" test:cov",
-    "clean": "pnpm --filter \"./packages/**\" clean && rm -rf node_modules"
+    "clean": "pnpm --filter \"./packages/**\" clean && rm -rf node_modules",
+    "check:service-boundary": "node scripts/check-service-repository-boundary.mjs",
+    "check:raw-sql": "node scripts/check-raw-sql-location.mjs",
+    "test:arch-boundary": "node --test scripts/check-service-repository-boundary.test.mjs scripts/check-raw-sql-location.test.mjs"
   },
   "keywords": [
     "struct-pass",

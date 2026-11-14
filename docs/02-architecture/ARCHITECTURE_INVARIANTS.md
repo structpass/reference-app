@@ -13,7 +13,7 @@
 - 依存方向は`Controller -> Service -> Repository -> Prisma`とする。
 - Serviceは業務判断を担当し、Prisma Clientを直接利用しない。
 - Repositoryはクエリ、永続化、DB transactionを所有する。
-- raw SQLなどの例外はRepository内へ閉じ、必要性と安全性をADRへ記録する。
+- raw SQLなどの例外はRepository内へ閉じ、必要性と安全性をADRへ記録する。受容済みの例は在庫の ensure-row（[ADR 0005](../decisions/0005-stock-lock-ensure-row-raw-sql.md)）と伝票番号の採番（[ADR 0045](../decisions/0045-document-number-advisory-lock.md)）。
 
 ## Duplication and shared sources
 

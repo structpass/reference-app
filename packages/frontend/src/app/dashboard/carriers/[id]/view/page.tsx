@@ -26,15 +26,22 @@ export default function ViewCarrierPage() {
 function ViewCarrierPageBody() {
   const { id } = useParams<{ id: string }>();
   const { fetchOne } = useCrudApi<Carrier>('/carriers', '運送会社');
-  const { item: carrier, loading, loadError, reload } = useFetchOne<Carrier>(fetchOne, id);
+  const {
+    item: carrier,
+    loading,
+    loadError,
+    reload,
+    retrying,
+  } = useFetchOne<Carrier>(fetchOne, id);
 
-  if (loading) {
+  // 再試行の間はローダーへ戻さない（失敗の表示のその場で処理中を出す・d1039）。
+  if (loading && !retrying) {
     return <EditPageLoader />;
   }
 
-  if (loadError) {
+  if (loadError || retrying) {
     return (
-      <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
     );
   }
 

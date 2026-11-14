@@ -6,7 +6,7 @@ export const OBJECT_TYPE_PERMISSION_PREFIX = 'object-type:' as const;
 
 /** The canonical ObjectType key syntax shared by API, guard, and permission code. */
 export const OBJECT_TYPE_KEY_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-export const OBJECT_TYPE_KEY_MAX_LENGTH = 100;
+const OBJECT_TYPE_KEY_MAX_LENGTH = 100;
 
 export type ObjectTypePermissionId = `${typeof OBJECT_TYPE_PERMISSION_PREFIX}${string}`;
 

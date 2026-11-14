@@ -147,6 +147,7 @@ function CustomLedgerPageBody({ keyParam }: { keyParam: string }) {
           onRetry={retryLoad}
           meta={meta}
           onPageChange={pagination.setPage}
+          tableId="object-types"
           getRowKey={(item) => String(item.id)}
           ariaLabel={`${ledger?.name ?? ''}一覧`}
           onRowClick={canUpdate() ? openEdit : undefined}

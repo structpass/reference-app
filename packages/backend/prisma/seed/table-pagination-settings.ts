@@ -24,6 +24,8 @@ const DEFAULT_PAGINATION_SETTINGS: Record<
   stocks: { defaultPageSize: 100, pageSizeOptions: '50,100,200,500' },
   forecast: { defaultPageSize: 100, pageSizeOptions: '50,100,200,500' },
   orders: { defaultPageSize: 50, pageSizeOptions: '20,50,100,200' },
+  // 台帳管理と自由定義台帳は台帳の件数が少ないため、マスタ系と同じ既定にする（d1172）。
+  'object-types': { defaultPageSize: 50, pageSizeOptions: '20,50,100,200' },
 };
 
 export async function seedTablePaginationSettings(prisma: PrismaClient) {

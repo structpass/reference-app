@@ -35,6 +35,7 @@ function EditOrderPageBody() {
     loading,
     loadError,
     reload,
+    retrying,
   } = useFetchOne<OrderWithItems>(fetchOne, id, (d) => {
     if (d.status !== 'DRAFT') {
       router.replace(`/dashboard/orders/${id}/view`);
@@ -65,10 +66,10 @@ function EditOrderPageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !doc ? (
         <EditPageNotFound message="発注データが見つかりませんでした" />
       ) : (

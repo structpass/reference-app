@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { Product } from '@struct-pass/shared';
 
-interface ExistingProductLine {
+export interface ExistingProductLine {
   productId: string;
   product?: { id: string; code: string; name: string };
 }

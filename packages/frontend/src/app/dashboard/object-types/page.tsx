@@ -209,6 +209,7 @@ function ObjectTypesPageBody() {
         onPageChange={pagination.setPage}
         pageSizeOptions={pageSizeOptions}
         onLimitChange={pagination.setLimit}
+        tableId="object-types"
         getRowKey={(objectType) => objectType.key}
         emptySubject="台帳"
         filtered={hasActiveFilters}
@@ -217,7 +218,13 @@ function ObjectTypesPageBody() {
           canUpdate('object-types')
             ? (objectType) =>
                 objectType.isPreset ? (
-                  <span className="text-xs text-[var(--sp-text-warm-mute)]">構造変更不可</span>
+                  <span
+                    className="text-xs text-[var(--sp-text-warm-mute)]"
+                    title="プリセット台帳は構造を変更できません"
+                  >
+                    <span aria-hidden="true">—</span>
+                    <span className="sr-only">プリセット台帳は構造を変更できません</span>
+                  </span>
                 ) : (
                   <Button
                     type="button"

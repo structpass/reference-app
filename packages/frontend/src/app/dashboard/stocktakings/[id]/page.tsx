@@ -38,6 +38,7 @@ function EditStocktakingPageBody() {
     loading,
     loadError,
     reload,
+    retrying,
   } = useFetchOne<StocktakingWithItems>(fetchOne, id, (d) => {
     if (d.status !== 'DRAFT') {
       router.replace(`/dashboard/stocktakings/${id}/view`);
@@ -68,10 +69,10 @@ function EditStocktakingPageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !doc ? (
         <EditPageNotFound message="棚卸データが見つかりませんでした" />
       ) : (

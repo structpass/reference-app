@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Receiving, ReceivingLine, Warehouse, Supplier } from '@struct-pass/shared';
@@ -17,17 +17,14 @@ import {
 import { LineItemsTable, type LineColumn } from '@/components/shared/line-items-table';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
-import { ProductLineCell } from '@/components/shared/product-line-cell';
-import { useProductLineSelection } from '@/hooks/use-product-line-selection';
 import { ProductSearchModal } from '@/components/shared/product-search-modal';
+import { WarehouseField, mapWarehouse } from '@/components/shared/warehouse-field';
+import {
+  createPlannedActualQtyColumns,
+  createProductColumn,
+} from '@/components/shared/document-line-columns';
+import { useDocumentLines } from '@/hooks/use-document-lines';
 import { useSelectOptions } from '@/hooks/use-select-options';
 import { useDocumentPage } from '@/hooks/use-document-page';
 import { formatISODate, todayISODate } from '@/lib/utils';
@@ -45,9 +42,37 @@ interface ReceivingFormProps {
   hideActions?: boolean;
 }
 
-const mapWarehouse = (w: Warehouse) => ({ value: String(w.id), label: w.name });
 const mapSupplier = (s: Supplier) => ({ value: String(s.id), label: s.name });
 
+/**
+ * 入荷伝票の状態遷移（確定・完了）のボタン定義。view ページの右上アクション行と
+ * 伝票フォームの双方が同じ定義を使う（片方だけ文言や確認文がずれないように）。
+ */
+export function useReceivingStatusActions(doc?: { id: number | string; status: string } | null) {
+  const { confirmDocument, complete, transitioning } = useDocumentPage({
+    basePath: '/receivings',
+    entityName: '入荷',
+  });
+
+  const statusActions: StatusAction[] = [];
+  if (doc?.status === 'DRAFT') {
+    statusActions.push({
+      label: '確定する',
+      onAction: () => confirmDocument(doc.id),
+      confirmTitle: '入荷を確定',
+      confirmDescription: '入荷を確定すると在庫が加算されます。よろしいですか？',
+    });
+  }
+  if (doc?.status === 'CONFIRMED') {
+    statusActions.push({
+      label: '完了する',
+      onAction: () => complete(doc.id),
+      confirmTitle: '入荷を完了',
+      confirmDescription: '入荷を完了にしますか？',
+    });
+  }
+  return { statusActions, transitioning };
+}
 function createEmptyLine(lineNo: number): ReceivingLineData {
   return { lineNo, productId: '', plannedQty: 1 };
 }
@@ -71,29 +96,9 @@ export function ReceivingForm({
     '/suppliers',
     useCallback(mapSupplier, []),
   );
-  const { confirmDocument, complete, transitioning } = useDocumentPage({
-    basePath: '/receivings',
-    entityName: '入荷',
-  });
+  const { statusActions, transitioning } = useReceivingStatusActions(doc);
 
   const today = todayISODate();
-  const [lines, setLines] = useState<ReceivingLineData[]>(
-    defaultLines ??
-      doc?.lines?.map((l) => ({
-        lineNo: l.lineNo,
-        productId: l.productId,
-        plannedQty: l.plannedQty,
-        actualQty: l.actualQty ?? undefined,
-      })) ?? [createEmptyLine(1)],
-  );
-
-  const {
-    productSearchOpen,
-    setProductSearchOpen,
-    openProductSearch,
-    handleProductSelect,
-    getProductDisplay,
-  } = useProductLineSelection(setLines, doc?.lines);
 
   const {
     register,
@@ -119,85 +124,38 @@ export function ReceivingForm({
     },
   });
 
+  const {
+    lines,
+    setLines,
+    productSearchOpen,
+    setProductSearchOpen,
+    openProductSearch,
+    handleProductSelect,
+    getProductDisplay,
+  } = useDocumentLines<ReceivingFormData, ReceivingLineData>({
+    setValue,
+    field: 'lines',
+    initialLines: defaultLines ??
+      doc?.lines?.map((l) => ({
+        lineNo: l.lineNo,
+        productId: l.productId,
+        plannedQty: l.plannedQty,
+        actualQty: l.actualQty ?? undefined,
+      })) ?? [createEmptyLine(1)],
+    existingLines: doc?.lines,
+  });
+
   const warehouseId = watch('warehouseId');
   const supplierId = watch('supplierId');
-
-  useEffect(() => {
-    setValue('lines', lines);
-  }, [lines, setValue]);
 
   const handleFormSubmit = handleSubmit((data) => {
     onSubmit?.({ ...data, lines });
   });
 
   const lineColumns: LineColumn<ReceivingLineData>[] = [
-    {
-      key: 'productId',
-      label: '商品',
-      width: '40%',
-      render: (line, index) => (
-        <ProductLineCell
-          isView={isView}
-          productId={line.productId}
-          getProductDisplay={getProductDisplay}
-          onSearch={() => openProductSearch(index)}
-        />
-      ),
-    },
-    {
-      key: 'plannedQty',
-      label: '予定数量',
-      width: '20%',
-      render: (line, index, onChange) =>
-        isView ? (
-          <span>{line.plannedQty}</span>
-        ) : (
-          <Input
-            type="number"
-            min={1}
-            value={line.plannedQty}
-            onChange={(e) => onChange(index, { ...line, plannedQty: Number(e.target.value) || 0 })}
-          />
-        ),
-    },
-    {
-      key: 'actualQty',
-      label: '実績数量',
-      width: '20%',
-      render: (line, index, onChange) =>
-        isView ? (
-          <span>{line.actualQty ?? '-'}</span>
-        ) : (
-          <Input
-            type="number"
-            min={0}
-            value={line.actualQty ?? ''}
-            onChange={(e) => {
-              const val = e.target.value === '' ? undefined : Number(e.target.value);
-              onChange(index, { ...line, actualQty: val });
-            }}
-          />
-        ),
-    },
+    createProductColumn<ReceivingLineData>(isView, { getProductDisplay, openProductSearch }),
+    ...createPlannedActualQtyColumns<ReceivingLineData>(isView),
   ];
-
-  const statusActions: StatusAction[] = [];
-  if (doc?.status === 'DRAFT') {
-    statusActions.push({
-      label: '確定する',
-      onAction: () => confirmDocument(doc.id),
-      confirmTitle: '入荷を確定',
-      confirmDescription: '入荷を確定すると在庫が加算されます。よろしいですか？',
-    });
-  }
-  if (doc?.status === 'CONFIRMED') {
-    statusActions.push({
-      label: '完了する',
-      onAction: () => complete(doc.id),
-      confirmTitle: '入荷を完了',
-      confirmDescription: '入荷を完了にしますか？',
-    });
-  }
 
   return (
     <>
@@ -230,35 +188,21 @@ export function ReceivingForm({
               />
             </FormField>
 
-            <FormField label="倉庫" required={!isView} error={errors.warehouseId?.message}>
-              {isView ? (
-                <span className="text-sm">
-                  {warehouseOpts.find((o) => o.value === String(warehouseId))?.label ?? '-'}
-                </span>
-              ) : (
-                <Select
-                  value={warehouseId ? String(warehouseId) : ''}
-                  onValueChange={(val) => setValue('warehouseId', Number(val))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="倉庫を選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouseOpts.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </FormField>
+            <WarehouseField
+              isView={isView}
+              value={warehouseId}
+              options={warehouseOpts}
+              error={errors.warehouseId?.message}
+              onChange={(val) => setValue('warehouseId', val)}
+            />
 
             <FormField label="仕入先" required={!isView} error={errors.supplierId?.message}>
               {isView ? (
-                <span className="text-sm">
-                  {supplierOpts.find((o) => o.value === String(supplierId))?.label ?? '-'}
-                </span>
+                <Input
+                  readOnly
+                  disabled
+                  value={supplierOpts.find((o) => o.value === String(supplierId))?.label ?? '-'}
+                />
               ) : (
                 <Combobox
                   value={supplierId ? String(supplierId) : ''}

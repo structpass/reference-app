@@ -30,7 +30,13 @@ export default function EditCarrierPage() {
 function EditCarrierPageBody() {
   const { id } = useParams<{ id: string }>();
   const { fetchOne, update } = useCrudApi<Carrier>('/carriers', '運送会社');
-  const { item: carrier, loading, loadError, reload } = useFetchOne<Carrier>(fetchOne, id);
+  const {
+    item: carrier,
+    loading,
+    loadError,
+    reload,
+    retrying,
+  } = useFetchOne<Carrier>(fetchOne, id);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: CarrierFormData) => {
@@ -62,10 +68,10 @@ function EditCarrierPageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !carrier ? (
         <EditPageNotFound message="運送会社が見つかりませんでした" />
       ) : (

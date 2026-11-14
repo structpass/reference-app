@@ -142,19 +142,39 @@ describe('利用者を参照する記録の保持 (d810)', () => {
             ...(await createUser(`counterpart-${index}`)),
             blockedBy: 'announcements_created_by_id_fkey',
           };
-          await createAnnouncement(counterpart.id, target.id);
+          // 添付を作るヘルパーは使わず、対象が更新者の欄だけを持つ形にする。
+          await prisma.announcement.create({
+            data: {
+              title: '更新者のみ',
+              bodyMarkdown: '本文',
+              createdById: counterpart.id,
+              updatedById: target.id,
+            },
+          });
           break;
         case 'announcement_attachments_created_by_id_fkey': {
-          // 告知の作成者と更新者を作り合いの利用者に置き、添付者だけを消そうとする利用者にする。
-          // 作り合いの利用者は、告知の作成者として止まり、更新者の欄の制約も同時に効く。
+          // 作成者と添付者を分け、更新者は設定しない。両者がそれぞれ1つの制約だけを持つ。
           counterpart = {
             ...(await createUser(`counterpart-${index}`)),
             blockedBy: 'announcements_created_by_id_fkey',
           };
-          const announcement = await createAnnouncement(counterpart.id, counterpart.id);
-          await prisma.announcementAttachment.updateMany({
-            where: { announcementId: announcement.id },
-            data: { createdById: target.id },
+          await prisma.announcement.create({
+            data: {
+              title: '添付者のみ',
+              bodyMarkdown: '本文',
+              createdById: counterpart.id,
+              attachments: {
+                create: [
+                  {
+                    fileName: 'a.txt',
+                    storagePath: '/a.txt',
+                    mimeType: 'text/plain',
+                    sizeBytes: 1,
+                    createdById: target.id,
+                  },
+                ],
+              },
+            },
           });
           break;
         }

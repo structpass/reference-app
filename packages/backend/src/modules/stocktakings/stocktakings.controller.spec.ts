@@ -162,5 +162,26 @@ describe('StocktakingsController', () => {
       expect(rows[0][4]).toBe('確定');
       expect(rows[0][3]).toBe('');
     });
+
+    it('棚卸日は保存した暦日で出し、時刻を付けない（d1005）', async () => {
+      const stocktakings = [
+        {
+          id: 2,
+          stocktakingDate: new Date('2026-03-17T00:00:00.000Z'),
+          warehouseId: 1,
+          stocktaker: null,
+          status: 'CONFIRMED',
+          createdAt: new Date('2026-03-17T00:00:00.000Z'),
+        },
+      ];
+      mockStocktakingsService.findAllForExport.mockResolvedValue(stocktakings);
+      mockExcelService.generate.mockResolvedValue(Buffer.from('excel'));
+
+      await controller.exportExcel({} as any);
+
+      const rows = mockExcelService.generate.mock.calls[0][2];
+      expect(rows[0][1]).toBe('2026/3/17');
+      expect(rows[0][5]).toBe('2026/3/17 9:00');
+    });
   });
 });

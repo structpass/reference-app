@@ -128,14 +128,16 @@ describe('buildCsp（本番・ref-0083 写し元 rete cmn-0298/0350）', () => {
     expect(csp).not.toContain("style-src 'self' 'unsafe-inline'");
   });
 
-  it('connect-src に自 backend と rete backend の 2 オリジンが導出される（ref-0037 維持）', async () => {
+  it('connect-src は自 backend のオリジンだけを導出する（rete API の写しは d1264/d1265 で廃止）', async () => {
     const { buildCsp } = await loadMiddleware({
       NODE_ENV: 'production',
       NEXT_PUBLIC_API_URL: 'https://api.example.com/api/v1',
       NEXT_PUBLIC_RETE_API_URL: 'https://rete.example.com/api/v1',
     });
     const csp = buildCsp('n');
-    expect(csp).toContain("connect-src 'self' https://api.example.com https://rete.example.com");
+    expect(csp).toContain("connect-src 'self' https://api.example.com");
+    // ブラウザから rete API を呼ぶ経路が無くなったため、rete のオリジンは許可しない。
+    expect(csp).not.toContain('https://rete.example.com');
     expect(csp).not.toContain('ws:');
   });
 
@@ -193,16 +195,16 @@ describe('buildCsp（本番・ref-0083 写し元 rete cmn-0298/0350）', () => {
       .split('; ')
       .find((d) => d.startsWith('connect-src '))!;
     // env の検証は url-guard の入口（resolveHttpUrl）を通るので、危険値は既定値へ落ちる。
-    expect(connectSrc).toBe("connect-src 'self' http://localhost:3001 http://localhost:3011");
+    expect(connectSrc).toBe("connect-src 'self' http://localhost:3001");
     expect(connectSrc).not.toContain('null');
   });
 
-  it('env が未設定でも connect-src は既定の2オリジンを持つ（v2-438）', async () => {
+  it('env が未設定でも connect-src は自 backend の既定オリジンを持つ（v2-438）', async () => {
     const { buildCsp } = await loadMiddleware({ NODE_ENV: 'production' });
     const connectSrc = buildCsp('n')
       .split('; ')
       .find((d) => d.startsWith('connect-src '))!;
-    expect(connectSrc).toBe("connect-src 'self' http://localhost:3001 http://localhost:3011");
+    expect(connectSrc).toBe("connect-src 'self' http://localhost:3001");
     expect(connectSrc).not.toContain('null');
   });
 });

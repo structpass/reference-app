@@ -16,6 +16,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiProduces } from '@ne
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators';
 import { ExcelService } from '../../common/services/excel.service';
+import { statusLabel } from '../../common/services/status-label';
 import { JstDateService } from '../../common/services/jst-date.service';
 import { CarriersService } from './carriers.service';
 import { CreateCarrierDto, UpdateCarrierDto, FindCarriersDto } from './dto';
@@ -49,11 +50,6 @@ export class CarriersController {
     `attachment; filename="carriers.xlsx"; filename*=UTF-8''carriers.xlsx`,
   )
   async exportExcel(@Query() query: FindCarriersDto): Promise<StreamableFile> {
-    const statusMap: Record<string, string> = {
-      ACTIVE: '有効',
-      INACTIVE: '無効',
-    };
-
     const carriers = await this.carriersService.findAllForExport(query);
     const columns = [
       { header: '運送会社コード', width: 18 },
@@ -66,7 +62,7 @@ export class CarriersController {
       c.code,
       c.name,
       c.phone ?? '',
-      statusMap[c.status] ?? c.status,
+      statusLabel(c.status),
       this.jstDate.toExportDateTime(c.createdAt),
     ]);
 

@@ -138,11 +138,11 @@ services:
       args:
         NEXT_PUBLIC_API_URL: https://${DOMAIN}/api/v1
         DOCKER_BUILD: '1'
-        # rete リンク（global-nav）と CSP 接続先の焼き込み値（ref-0087）。NEXT_PUBLIC_* はビルド時に
+        # rete リンク（global-nav）の焼き込み値（ref-0087）。NEXT_PUBLIC_* はビルド時に
         # インライン化されるため実行時 environment では直せない＝build args が唯一の注入点。
-        # 未設定は :? で即失敗させる（コード側フォールバック localhost:3010/3011 の黙った焼き込み防止）。
-        NEXT_PUBLIC_RETE_URL: ${NEXT_PUBLIC_RETE_URL:?NEXT_PUBLIC_RETE_URL is required (rete link/CSP target; no localhost fallback in prod)}
-        NEXT_PUBLIC_RETE_API_URL: ${NEXT_PUBLIC_RETE_API_URL:?NEXT_PUBLIC_RETE_API_URL is required (rete API for display preference; no localhost fallback in prod)}
+        # 未設定は :? で即失敗させる（コード側フォールバック localhost:3010 の黙った焼き込み防止）。
+        # NEXT_PUBLIC_RETE_API_URL は d1264/d1265 で表示個人設定の写しを廃止したため不要。
+        NEXT_PUBLIC_RETE_URL: ${NEXT_PUBLIC_RETE_URL:?NEXT_PUBLIC_RETE_URL is required (rete link; no localhost fallback in prod)}
         # 見た目のみの 2 変数（未設定でもビルドは通る）。APP_ENV は空なら env バッジ非表示。
         # APP_SUBTITLE は空文字がコード側既定（?? 判定）を素通しで潰すため、compose 側で既定を補う。
         NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV:-}

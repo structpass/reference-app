@@ -16,6 +16,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiProduces } from '@ne
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators';
 import { ExcelService } from '../../common/services/excel.service';
+import { statusLabel } from '../../common/services/status-label';
 import { JstDateService } from '../../common/services/jst-date.service';
 import { SuppliersService } from './suppliers.service';
 import { CreateSupplierDto, UpdateSupplierDto, FindSuppliersDto } from './dto';
@@ -49,11 +50,6 @@ export class SuppliersController {
     `attachment; filename="suppliers.xlsx"; filename*=UTF-8''suppliers.xlsx`,
   )
   async exportExcel(@Query() query: FindSuppliersDto): Promise<StreamableFile> {
-    const statusMap: Record<string, string> = {
-      ACTIVE: '有効',
-      INACTIVE: '無効',
-    };
-
     const suppliers = await this.suppliersService.findAllForExport(query);
     const columns = [
       { header: '仕入先コード', width: 18 },
@@ -66,7 +62,7 @@ export class SuppliersController {
       s.code,
       s.name,
       s.phone ?? '',
-      statusMap[s.status] ?? s.status,
+      statusLabel(s.status),
       this.jstDate.toExportDateTime(s.createdAt),
     ]);
 

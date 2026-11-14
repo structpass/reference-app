@@ -52,6 +52,7 @@ pnpm dev
   新しく作る開発 DB の例: `postgresql://postgres:CHANGE_ME_dev_db_password@127.0.0.1:5432/struct_pass_dev?schema=public`
 - `POSTGRES_PASSWORD` が効くのはコンテナの初回作成（initdb）時だけです。作成済みの開発 DB には初期化時のパスワードが残るため、既にボリュームがある開発機では `packages/backend/.env` の `DATABASE_URL` に書かれている値を `.env` の `POSTGRES_PASSWORD` に入れてください。既存値を新しい値へ変えるには DB 内の操作（`ALTER USER`）かボリュームの作り直し（開発データの消去）が要ります。
 - 検証のためだけに DB を複製する時は、作った人が終わりに片付ける決まり（名前・管理票・終了の印・消してよいかの判定）に従います。手順は [検証用 DB の作成と片付け](../operations/verification-database-lifecycle.md) を参照してください。
+- 開発 DB を**作り直す**（消して作り直す・別のダンプや seed から入れ替える・`prisma migrate reset` を使う）時は、作り手が同じ回に理由・戻し先（退避の場所と SHA256）・入れ方・時刻と版を決定台帳の記録に残します。手順と記録の形は [開発 DB を作り直した時の記録](../operations/dev-database-rebuild.md) を参照してください。
 
 ## 環境変数
 

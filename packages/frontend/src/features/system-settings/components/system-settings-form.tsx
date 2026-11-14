@@ -44,17 +44,20 @@ export function SystemSettingsForm({
   );
 
   return (
-    <div className="overflow-hidden rounded-lg border border-[var(--sp-line-warm)] bg-[var(--sp-card)]">
+    <div
+      data-list-compact
+      className="overflow-hidden border border-[var(--sp-line-warm)] bg-[var(--sp-card)]"
+    >
       <table className="w-full">
-        <thead className="sticky top-0 z-10 border-b border-[var(--sp-line-warm)] bg-[var(--sp-paper-2)]">
+        <thead className="sticky top-0 z-10">
           <tr>
-            <th className="h-9 w-1/4 px-4 text-left align-middle text-sm font-semibold uppercase tracking-wide text-[var(--sp-text-warm)]">
+            <th data-static className="relative h-8 w-1/4 px-4 text-left align-middle">
               表示名
             </th>
-            <th className="h-9 w-2/5 px-4 text-left align-middle text-sm font-semibold uppercase tracking-wide text-[var(--sp-text-warm)]">
+            <th data-static className="relative h-8 w-2/5 px-4 text-left align-middle">
               備考
             </th>
-            <th className="h-9 px-4 text-left align-middle text-sm font-semibold uppercase tracking-wide text-[var(--sp-text-warm)]">
+            <th data-static className="relative h-8 px-4 text-left align-middle">
               値
             </th>
           </tr>
@@ -64,11 +67,8 @@ export function SystemSettingsForm({
             const value = drafts[setting.key] ?? setting.value;
             const isDirty = dirtyKeys.includes(setting.key);
             return (
-              <tr
-                key={setting.key}
-                className="border-t border-[var(--sp-line-warm-2)] last:border-b-0"
-              >
-                <td className="px-4 py-3 align-top">
+              <tr key={setting.key} className="border-b">
+                <td className="px-4 py-2 align-top">
                   <Label className="block text-sm font-medium text-[var(--sp-text-warm)]">
                     {setting.label}
                     {isDirty && (
@@ -78,12 +78,12 @@ export function SystemSettingsForm({
                     )}
                   </Label>
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className="px-4 py-2 align-top">
                   {setting.description && (
                     <p className="text-xs text-[var(--sp-text-warm-mute)]">{setting.description}</p>
                   )}
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className="px-4 py-2 align-top">
                   <SettingValueInput
                     setting={setting}
                     value={value}

@@ -51,7 +51,10 @@ describe('台帳管理の一覧 (d832)', () => {
     // 一覧 API が添える項目数（fieldCount）が出る。台帳ごとの詳細は取りに行かない（d899）
     expect(within(rows[0]).getByText('0')).toBeInTheDocument();
     expect(within(rows[0]).getByText('プリセット')).toBeInTheDocument();
-    expect(within(rows[0]).getByText('構造変更不可')).toBeInTheDocument();
+    // プリセットの操作列は一覧画面と同じ行高に収めるため記号だけを出し、理由は title と読み上げ用の文に持たせる（d1172）。
+    const presetAction = within(rows[0]).getByTitle('プリセット台帳は構造を変更できません');
+    expect(presetAction).toHaveTextContent('—');
+    expect(within(rows[0]).getByText('プリセット台帳は構造を変更できません')).toBeInTheDocument();
     expect(within(rows[1]).getByText('supplier-score')).toBeInTheDocument();
     expect(within(rows[1]).getByText('3')).toBeInTheDocument();
     expect(within(rows[1]).getByText('ユーザー定義')).toBeInTheDocument();

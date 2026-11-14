@@ -40,6 +40,28 @@ function createEmptyItem(lineNo: number): OrderItemData {
   return { lineNo, productId: '', orderQty: 1, unitPrice: 0 };
 }
 
+/**
+ * 発注伝票の状態遷移（確定）のボタン定義。view ページの右上アクション行と
+ * 伝票フォームの双方が同じ定義を使う。
+ */
+export function useOrderStatusActions(doc?: { id: number | string; status: string } | null) {
+  const { confirmDocument, transitioning } = useDocumentPage({
+    basePath: '/orders',
+    entityName: '発注',
+  });
+
+  const statusActions: StatusAction[] = [];
+  if (doc?.status === 'DRAFT') {
+    statusActions.push({
+      label: '発注確定',
+      onAction: () => confirmDocument(doc.id),
+      confirmTitle: '発注を確定',
+      confirmDescription: '発注を確定しますか？',
+    });
+  }
+  return { statusActions, transitioning };
+}
+
 export function OrderForm({
   mode,
   defaultValues,
@@ -55,10 +77,7 @@ export function OrderForm({
     '/suppliers',
     useCallback(mapSupplier, []),
   );
-  const { confirmDocument, transitioning } = useDocumentPage({
-    basePath: '/orders',
-    entityName: '発注',
-  });
+  const { statusActions, transitioning } = useOrderStatusActions(doc);
 
   const today = todayISODate();
   const [items, setItems] = useState<OrderItemData[]>(
@@ -174,16 +193,6 @@ export function OrderForm({
     },
   ];
 
-  const statusActions: StatusAction[] = [];
-  if (doc?.status === 'DRAFT') {
-    statusActions.push({
-      label: '発注確定',
-      onAction: () => confirmDocument(doc.id),
-      confirmTitle: '発注を確定',
-      confirmDescription: '発注を確定しますか？',
-    });
-  }
-
   return (
     <>
       <DocumentForm
@@ -212,9 +221,11 @@ export function OrderForm({
 
             <FormField label="仕入先" required={!isView} error={errors.supplierId?.message}>
               {isView ? (
-                <span className="text-sm">
-                  {supplierOpts.find((o) => o.value === String(supplierId))?.label ?? '-'}
-                </span>
+                <Input
+                  readOnly
+                  disabled
+                  value={supplierOpts.find((o) => o.value === String(supplierId))?.label ?? '-'}
+                />
               ) : (
                 <Combobox
                   value={supplierId ? String(supplierId) : ''}
@@ -249,12 +260,12 @@ export function OrderForm({
             summary={
               <>
                 <td
-                  colSpan={3}
-                  className="px-3 py-2 text-right font-medium text-[var(--sp-text-warm)]"
+                  colSpan={4}
+                  className="px-4 py-2 text-right font-medium text-[var(--sp-text-warm)]"
                 >
                   合計
                 </td>
-                <td className="px-3 py-2 font-semibold text-[var(--sp-text-warm)]">
+                <td className="px-4 py-2 font-semibold text-[var(--sp-text-warm)]">
                   {formatNumber(totalAmount)}
                 </td>
                 {!isView && <td />}

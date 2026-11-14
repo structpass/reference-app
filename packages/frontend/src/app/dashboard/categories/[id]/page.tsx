@@ -30,7 +30,13 @@ export default function EditCategoryPage() {
 function EditCategoryPageBody() {
   const { id } = useParams<{ id: string }>();
   const { fetchOne, update } = useCrudApi<Category>('/categories', 'カテゴリー');
-  const { item: category, loading, loadError, reload } = useFetchOne<Category>(fetchOne, id);
+  const {
+    item: category,
+    loading,
+    loadError,
+    reload,
+    retrying,
+  } = useFetchOne<Category>(fetchOne, id);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: CategoryFormData) => {
@@ -59,10 +65,10 @@ function EditCategoryPageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !category ? (
         <EditPageNotFound message="カテゴリーが見つかりませんでした" />
       ) : (

@@ -65,8 +65,24 @@ function jobBody(name) {
   return lines.slice(start, end).join('\n');
 }
 
-/** ジョブの needs を配列で返す（`needs: x` と `needs: [a, b]` の両方）。 */
-function jobNeeds(name) {
+/** ジョブ本体から 1 つの step（`- name: <name>` から次の `- name:` まで）を返す。 */
+function stepBody(job, name) {
+  const stepLines = job.split(/\r?\n/);
+  const start = stepLines.findIndex((l) => l.trim() === `- name: ${name}`);
+  if (start === -1) return null;
+  let end = stepLines.length;
+  for (let i = start + 1; i < stepLines.length; i++) {
+    if (/^\s*-\s+name:/.test(stepLines[i])) {
+      end = i;
+      break;
+    }
+  }
+  return stepLines.slice(start, end).join('\n');
+}
+
+/** ジョブの needs を配列で返す（`needs: x` と `needs: [a, b]` の両方）。 */ function jobNeeds(
+  name,
+) {
   const body = jobBody(name);
   if (!body) return null;
   const m = /^\s{4}needs:\s*(.+)$/m.exec(body);
@@ -183,6 +199,34 @@ if (jobs.includes('cleanup')) {
   if (!/delete-item/.test(body)) problems.push('cleanup から共有 EC2 lock の解放が落ちている');
   if (!/release-address/.test(body)) problems.push('cleanup から EIP 返却が落ちている');
   if (!/stop-instances/.test(body)) problems.push('cleanup から EC2 停止が落ちている');
+  // 後始末はどの段階で失敗しても、返却と停止まで必ず走ること（d1008）。DNS の更新が失敗した時に
+  // EIP の返却・EC2 の停止が門で止まると、起動したまま 522 が残る。
+  for (const name of [
+    'Release ephemeral Elastic IP',
+    'Stop EC2 only when started by this workflow',
+  ]) {
+    const step = stepBody(body, name);
+    if (!step) {
+      problems.push(`cleanup に step『${name}』が無い`);
+      continue;
+    }
+    const gate = /^\s*if:\s*(.+)$/m.exec(step);
+    if (!gate)
+      problems.push(`cleanup の step『${name}』に if が無い（前の step が失敗すると走らない）`);
+    else if (/(^|[^A-Za-z_])failure\(|cancelled\(/.test(gate[1])) {
+      problems.push(`cleanup の step『${name}』の if が失敗時を除外している: ${gate[1].trim()}`);
+    }
+    if (/needs\.lifecycle\.result/.test(gate?.[1] ?? '')) {
+      problems.push(
+        `cleanup の step『${name}』の if が lifecycle の結果で門を張っている: ${gate[1].trim()}`,
+      );
+    }
+  }
+  if (/steps\.deactivate-dns\.outcome\s*==\s*'success'/.test(body)) {
+    problems.push(
+      'cleanup の EIP 返却が DNS の更新の成功を条件にしている（DNS が失敗すると返却されない）',
+    );
+  }
 }
 for (const name of ['deploy', 'health']) {
   if (!jobs.includes(name)) continue;

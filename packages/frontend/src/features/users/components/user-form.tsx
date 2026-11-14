@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
+import { StatusSelect } from '@/components/shared/status-select';
 import {
   Select,
   SelectContent,
@@ -141,24 +142,13 @@ export function UserForm({
         </Select>
       </FormField>
 
-      <FormField label="ステータス" error={errors.status?.message}>
-        <Select
-          value={statusValue}
-          onValueChange={(val) => setValue('status', val as ActiveStatus)}
-          disabled={isView}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="ステータスを選択" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
+      <StatusSelect
+        value={statusValue}
+        options={statusOptions}
+        onChange={(val) => setValue('status', val as ActiveStatus)}
+        error={errors.status?.message}
+        disabled={isView}
+      />
 
       {!hideActions && (
         <div className="flex gap-4 pt-4">

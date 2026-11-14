@@ -159,7 +159,14 @@ export function useListPage<T>(options: UseListPageOptions<T>) {
 
   const handleFilterChange = useCallback(
     (newFilters: Record<string, string | undefined>) => {
-      setFilters(newFilters);
+      // 初期表示後の空条件通知など、有効な条件が同じなら取得を重ねない。
+      setFilters((current) => {
+        const keys = new Set([...Object.keys(current), ...Object.keys(newFilters)]);
+        const unchanged = [...keys].every(
+          (key) => (current[key] ?? '') === (newFilters[key] ?? ''),
+        );
+        return unchanged ? current : newFilters;
+      });
       resetPage();
     },
     [resetPage],

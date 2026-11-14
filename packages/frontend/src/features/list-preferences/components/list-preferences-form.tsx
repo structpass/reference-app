@@ -25,6 +25,7 @@ const TABLE_LABELS: Record<TableId, string> = {
   stocks: '在庫',
   forecast: '予測在庫',
   orders: '発注',
+  'object-types': '台帳',
 };
 
 interface ListPreferencesFormProps {
@@ -51,18 +52,21 @@ export function ListPreferencesForm({
   );
 
   return (
-    <div className="overflow-hidden rounded-lg border border-[var(--sp-line-warm)] bg-[var(--sp-card)]">
+    <div
+      data-list-compact
+      className="overflow-hidden border border-[var(--sp-line-warm)] bg-[var(--sp-card)]"
+    >
       <div className="max-h-[70vh] overflow-y-auto">
         <table className="w-full">
-          <thead className="sticky top-0 z-10 border-b border-[var(--sp-line-warm)] bg-[var(--sp-paper-2)]">
+          <thead className="sticky top-0 z-10">
             <tr>
-              <th className="h-9 w-1/4 px-4 text-left align-middle text-sm font-semibold uppercase tracking-wide text-[var(--sp-text-warm)]">
+              <th data-static className="relative h-8 w-1/4 px-4 text-left align-middle">
                 一覧
               </th>
-              <th className="h-9 w-1/5 px-4 text-left align-middle text-sm font-semibold uppercase tracking-wide text-[var(--sp-text-warm)]">
+              <th data-static className="relative h-8 w-1/5 px-4 text-left align-middle">
                 デフォルト件数
               </th>
-              <th className="h-9 px-4 text-left align-middle text-sm font-semibold uppercase tracking-wide text-[var(--sp-text-warm)]">
+              <th data-static className="relative h-8 px-4 text-left align-middle">
                 表示件数選択肢（カンマ区切り）
               </th>
             </tr>
@@ -77,11 +81,8 @@ export function ListPreferencesForm({
               const optionsInvalid = !isPageSizeOptionsValid(draft.pageSizeOptions);
               const sizeInvalid = !isDefaultPageSizeValid(draft.defaultPageSize);
               return (
-                <tr
-                  key={setting.tableId}
-                  className="h-11 border-t border-[var(--sp-line-warm-2)] last:border-b-0"
-                >
-                  <td className="px-4 align-middle">
+                <tr key={setting.tableId} className="border-b">
+                  <td className="px-4 py-1.5 align-middle">
                     <Label className="block text-sm font-medium text-[var(--sp-text-warm)]">
                       {TABLE_LABELS[setting.tableId] ?? setting.tableId}
                       {isDirty && (
@@ -91,7 +92,7 @@ export function ListPreferencesForm({
                       )}
                     </Label>
                   </td>
-                  <td className="px-4 align-middle">
+                  <td className="px-4 py-1.5 align-middle">
                     <Input
                       type="number"
                       min={1}
@@ -103,7 +104,7 @@ export function ListPreferencesForm({
                       title={sizeInvalid ? '1〜10000 の整数を指定' : undefined}
                     />
                   </td>
-                  <td className="px-4 align-middle">
+                  <td className="px-4 py-1.5 align-middle">
                     <Input
                       type="text"
                       value={draft.pageSizeOptions}

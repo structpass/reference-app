@@ -43,6 +43,40 @@ export class JstDateService {
     const minute = iso.slice(14, 16);
     return `${iso.slice(0, 4)}/${month}/${day} ${hour}:${minute}`;
   }
+
+  /**
+   * 日付だけの値（DB の `date` 型。Prisma は UTC の 0 時にした Date で返す）を、
+   * 一覧の書き出しに載せる暦日（`YYYY/M/D`。月・日はゼロ埋めしない）にする。
+   *
+   * **日本時間へは足さない**（d1005）。date 型の値は保存した暦日そのもので、時刻を持たない。
+   * `toExportDateTime` のように +9 時間すると 09:00 になり、受け側が日時として書式を当てると
+   * 「2026/3/17 9:00」と時刻の分からない日付の粗い値になる。日時（created_at など）だけを日本時間にする。
+   *
+   * 月・日はゼロ埋めしない（`2026/3/17`）。利用者が書き出しを開いて画面と見比べる時に、
+   * 同じ暦日が別の表記にならないようにする。
+   */
+  toExportDate(value: Date | string): string {
+    if (value === null || value === undefined) return '';
+    const iso = toCalendarIso(value);
+    if (iso === null) return '';
+    const month = Number(iso.slice(5, 7));
+    const day = Number(iso.slice(8, 10));
+    return `${iso.slice(0, 4)}/${month}/${day}`;
+  }
+}
+
+/**
+ * 日付だけの値を「保存した暦日」の ISO 風文字列（`YYYY-MM-DD`）にする。解釈できない値は `null`。
+ *
+ * - Date: その UTC の暦日（date 型の値。ローカル時計で組み立てた Date も、その暦日として読む）
+ * - `YYYY-MM-DD` の文字列: そのまま（暦日として扱う）
+ * - それ以外（日時を含む文字列・Date）: UTC の暦日
+ */
+export function toCalendarIso(value: Date | string): string | null {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getTime()).toISOString().slice(0, 10);
 }
 
 /** 日本時間（UTC+9・夏時間なし）の ISO 風文字列。解釈できない値は `null`。 */

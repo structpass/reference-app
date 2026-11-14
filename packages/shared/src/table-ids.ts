@@ -16,6 +16,8 @@ export const TABLE_IDS = [
   'stocks',
   'forecast',
   'orders',
+  // 台帳管理（object-types）と自由定義台帳（custom）は同じ台帳の一覧なので同じ骨格を使う（d1172）。
+  'object-types',
 ] as const;
 
 export type TableId = (typeof TABLE_IDS)[number];

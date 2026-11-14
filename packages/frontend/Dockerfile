@@ -52,11 +52,11 @@ COPY packages/frontend ./packages/frontend
 ARG NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
 ARG DOCKER_BUILD=1
 
-# rete リンク（global-nav）と CSP 接続先（next.config）の焼き込み値（ref-0087）。
-# 意図的に既定値を置かない＝未設定のままビルドすると、コード側フォールバック localhost:3010/3011 が
+# rete リンク（global-nav）の焼き込み値（ref-0087）。
+# 意図的に既定値を置かない＝未設定のままビルドすると、コード側フォールバック localhost:3010 が
 # 本番成果物へ黙って焼き込まれる（今回の欠落がまさにそれ）。下の RUN で明示的に失敗させる。
+# NEXT_PUBLIC_RETE_API_URL は d1264/d1265 で rete の表示個人設定の写しを廃止したため不要になった。
 ARG NEXT_PUBLIC_RETE_URL
-ARG NEXT_PUBLIC_RETE_API_URL
 # 見た目のみの 2 変数（未設定でもビルドは通る）。APP_ENV は空なら env バッジ非表示。
 # APP_SUBTITLE の既定はコード側（layout.tsx の ?? 判定）と同値＝空文字で潰さない。
 ARG NEXT_PUBLIC_APP_ENV=
@@ -65,18 +65,15 @@ ARG NEXT_PUBLIC_APP_SUBTITLE=商品管理システム
 # 非空だけでなく http(s) 形式まで検査する＝消費者側のスキームガード（global-nav.tsx ほかの
 # /^https?:\/\// 判定）と同じ条件をビルド時に前倒しする。プレースホルダ（<https://...> 等）の
 # 置換し忘れは非空チェックを素通りし、実行時に黙って localhost へフォールバックしてしまうため。
-RUN for pair in "NEXT_PUBLIC_RETE_URL=$NEXT_PUBLIC_RETE_URL" "NEXT_PUBLIC_RETE_API_URL=$NEXT_PUBLIC_RETE_API_URL"; do \
-      case "${pair#*=}" in \
-        http://*|https://*) ;; \
-        *) echo "ERROR: build arg ${pair%%=*} must be an http(s) URL (got: '${pair#*=}')." \
-                "Pass it via compose build args (docker-compose*.yml) or --build-arg." \
-                "Building without it would silently bake localhost:3010/3011 into the bundle (ref-0087)." && exit 1 ;; \
-      esac; \
-    done
+RUN case "$NEXT_PUBLIC_RETE_URL" in \
+      http://*|https://*) ;; \
+      *) echo "ERROR: build arg NEXT_PUBLIC_RETE_URL must be an http(s) URL (got: '$NEXT_PUBLIC_RETE_URL')." \
+              "Pass it via compose build args (docker-compose*.yml) or --build-arg." \
+              "Building without it would silently bake localhost:3010 into the bundle (ref-0087)." && exit 1 ;; \
+    esac
 
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_RETE_URL=${NEXT_PUBLIC_RETE_URL}
-ENV NEXT_PUBLIC_RETE_API_URL=${NEXT_PUBLIC_RETE_API_URL}
 ENV NEXT_PUBLIC_APP_ENV=${NEXT_PUBLIC_APP_ENV}
 ENV NEXT_PUBLIC_APP_SUBTITLE=${NEXT_PUBLIC_APP_SUBTITLE}
 ENV DOCKER_BUILD=${DOCKER_BUILD}

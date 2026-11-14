@@ -30,7 +30,7 @@ export default function EditGroupPage() {
 function EditGroupPageBody() {
   const { id } = useParams<{ id: string }>();
   const { fetchOne, update } = useCrudApi<Group>('/groups', 'グループ');
-  const { item: group, loading, loadError, reload } = useFetchOne<Group>(fetchOne, id);
+  const { item: group, loading, loadError, reload, retrying } = useFetchOne<Group>(fetchOne, id);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: GroupFormData) => {
@@ -62,10 +62,10 @@ function EditGroupPageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !group ? (
         <EditPageNotFound message="グループが見つかりませんでした" />
       ) : (

@@ -18,6 +18,7 @@ import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, RequirePermission } from '../../common/decorators';
 import { ExcelService } from '../../common/services/excel.service';
+import { statusLabel } from '../../common/services/status-label';
 import { JstDateService } from '../../common/services/jst-date.service';
 import { GroupsService } from './groups.service';
 import { CreateGroupDto, UpdateGroupDto, FindGroupsDto, AddMemberDto } from './dto';
@@ -48,11 +49,6 @@ export class GroupsController {
   // SEC-M6: ASCII 固定名でも RFC 5987 形式（filename* 併記）に統一。
   @Header('Content-Disposition', `attachment; filename="groups.xlsx"; filename*=UTF-8''groups.xlsx`)
   async exportExcel(@Query() query: FindGroupsDto): Promise<StreamableFile> {
-    const statusMap: Record<string, string> = {
-      ACTIVE: '有効',
-      INACTIVE: '無効',
-    };
-
     const roleMap: Record<string, string> = {
       WH_USER: '倉庫担当（一般）',
       WH_ADMIN: '倉庫担当（管理者）',
@@ -75,7 +71,7 @@ export class GroupsController {
       g.name,
       g.description ?? '',
       g.role ? (roleMap[g.role] ?? g.role) : '',
-      statusMap[g.status] ?? g.status,
+      statusLabel(g.status),
       this.jstDate.toExportDateTime(g.createdAt),
     ]);
 

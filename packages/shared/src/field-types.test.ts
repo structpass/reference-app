@@ -39,6 +39,6 @@ describe('PERMISSION_ACTIONS', () => {
 describe('TABLE_IDS', () => {
   it('重複が無く、FeatureId と同じ形（kebab-case）であること', () => {
     expect(new Set(TABLE_IDS).size).toBe(TABLE_IDS.length);
-    expect(TABLE_IDS.every((id) => /^[a-z][a-z0-9]*$/.test(id))).toBe(true);
+    expect(TABLE_IDS.every((id) => /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(id))).toBe(true);
   });
 });

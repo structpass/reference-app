@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
+import { StatusSelect } from '@/components/shared/status-select';
 import {
   Select,
   SelectContent,
@@ -127,24 +128,13 @@ export function GroupForm({
         </Select>
       </FormField>
 
-      <FormField label="ステータス" error={errors.status?.message}>
-        <Select
-          value={statusValue}
-          onValueChange={(val) => setValue('status', val as GroupFormData['status'])}
-          disabled={isView}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="ステータスを選択" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
+      <StatusSelect
+        value={statusValue}
+        options={statusOptions}
+        onChange={(val) => setValue('status', val as GroupFormData['status'])}
+        error={errors.status?.message}
+        disabled={isView}
+      />
 
       {!hideActions && (
         <div className="flex gap-4 pt-4">

@@ -159,7 +159,29 @@ describe('OrdersController', () => {
       await controller.exportExcel({} as any);
 
       const rows = mockExcelService.generate.mock.calls[0][2];
-      expect(rows[0][4]).toBe('発注確定');
+      // 画面と同じ言葉に揃えた（d1019。以前は書き出しだけ「発注確定」だった）。
+      expect(rows[0][4]).toBe('発注済');
+    });
+
+    it('発注日は保存した暦日で出し、時刻を付けない（d1005）', async () => {
+      const orders = [
+        {
+          orderNo: 'PO-001',
+          orderDate: new Date('2026-03-17T00:00:00.000Z'),
+          supplierId: 1,
+          totalAmount: 1000,
+          status: 'ORDERED',
+          createdAt: new Date('2026-03-17T00:00:00.000Z'),
+        },
+      ];
+      mockOrdersService.findAllForExport.mockResolvedValue(orders);
+      mockExcelService.generate.mockResolvedValue(Buffer.from('excel'));
+
+      await controller.exportExcel({} as any);
+
+      const rows = mockExcelService.generate.mock.calls[0][2];
+      expect(rows[0][1]).toBe('2026/3/17');
+      expect(rows[0][5]).toBe('2026/3/17 9:00');
     });
   });
 });

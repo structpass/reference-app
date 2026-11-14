@@ -31,7 +31,13 @@ function EditWarehousePageBody() {
   const { id } = useParams<{ id: string }>();
   const numericId = Number(id);
   const { fetchOne, update } = useCrudApi<Warehouse>('/warehouses', '倉庫');
-  const { item: warehouse, loading, loadError, reload } = useFetchOne<Warehouse>(fetchOne, id);
+  const {
+    item: warehouse,
+    loading,
+    loadError,
+    reload,
+    retrying,
+  } = useFetchOne<Warehouse>(fetchOne, id);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: WarehouseFormData) => {
@@ -63,10 +69,10 @@ function EditWarehousePageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !warehouse ? (
         <EditPageNotFound message="倉庫が見つかりませんでした" />
       ) : (

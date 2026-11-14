@@ -174,5 +174,27 @@ describe('ReceivingsController', () => {
       const rows = mockExcelService.generate.mock.calls[0][2];
       expect(rows[0][4]).toBe('確定');
     });
+
+    it('入荷日は保存した暦日で出し、時刻を付けない（d1005）', async () => {
+      const receivings = [
+        {
+          receivingNo: 'RCV-001',
+          receivingDate: new Date('2026-03-17T00:00:00.000Z'),
+          warehouseId: 1,
+          supplierId: 1,
+          status: 'DRAFT',
+          createdAt: new Date('2026-03-17T00:00:00.000Z'),
+        },
+      ];
+      mockReceivingsService.findAllForExport.mockResolvedValue(receivings);
+      mockExcelService.generate.mockResolvedValue(Buffer.from('excel'));
+
+      await controller.exportExcel({} as any);
+
+      const rows = mockExcelService.generate.mock.calls[0][2];
+      // 日付だけの列は +9 時間しない。日時（作成日）だけが日本時間になる。
+      expect(rows[0][1]).toBe('2026/3/17');
+      expect(rows[0][5]).toBe('2026/3/17 9:00');
+    });
   });
 });

@@ -33,7 +33,14 @@ export default function EditUserPage() {
 function EditUserPageBody() {
   const { id } = useParams<{ id: string }>();
   const { fetchOne, update } = useCrudApi<User>('/users', 'ユーザー');
-  const { item: user, loading, loadError, reload, setItem } = useFetchOne<User>(fetchOne, id);
+  const {
+    item: user,
+    loading,
+    loadError,
+    reload,
+    retrying,
+    setItem,
+  } = useFetchOne<User>(fetchOne, id);
   const [submitting, setSubmitting] = useState(false);
   const [allowSsoSubmitting, setAllowSsoSubmitting] = useState(false);
   // v2-426: SSO 連携の許可は SYS_ADMIN のみ（API も同条件で 403 にする）。
@@ -83,10 +90,10 @@ function EditUserPageBody() {
         )
       }
     >
-      {loading ? (
+      {loading && !retrying ? (
         <EditPageLoader />
-      ) : loadError ? (
-        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={loading} />
+      ) : loadError || retrying ? (
+        <LoadFailed message="記載の情報を読み込めませんでした。" onRetry={reload} busy={retrying} />
       ) : !user ? (
         <EditPageNotFound message="ユーザーが見つかりませんでした" />
       ) : (

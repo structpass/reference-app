@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ExcelService } from '../../common/services/excel.service';
+import { statusLabel } from '../../common/services/status-label';
 import { JstDateService } from '../../common/services/jst-date.service';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto, UpdateOrderDto, FindOrdersDto } from './dto';
@@ -47,11 +48,6 @@ export class OrdersController {
   // SEC-M6: ASCII 固定名でも RFC 5987 形式（filename* 併記）に統一。
   @Header('Content-Disposition', `attachment; filename="orders.xlsx"; filename*=UTF-8''orders.xlsx`)
   async exportExcel(@Query() query: FindOrdersDto): Promise<StreamableFile> {
-    const statusMap: Record<string, string> = {
-      DRAFT: '下書き',
-      ORDERED: '発注確定',
-    };
-
     const orders = await this.ordersService.findAllForExport(query);
     const columns = [
       { header: '発注番号', width: 22 },
@@ -63,10 +59,10 @@ export class OrdersController {
     ];
     const rows = orders.map((o) => [
       o.orderNo,
-      this.jstDate.toExportDateTime(o.orderDate),
+      this.jstDate.toExportDate(o.orderDate),
       o.supplier?.name ?? '',
       o.totalAmount != null ? String(o.totalAmount) : '',
-      statusMap[o.status] ?? o.status,
+      statusLabel(o.status),
       this.jstDate.toExportDateTime(o.createdAt),
     ]);
 

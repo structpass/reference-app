@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Stocktaking, StocktakingItem, Warehouse } from '@struct-pass/shared';
@@ -17,16 +17,10 @@ import {
 import { LineItemsTable, type LineColumn } from '@/components/shared/line-items-table';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { ProductLineCell } from '@/components/shared/product-line-cell';
-import { useProductLineSelection } from '@/hooks/use-product-line-selection';
 import { ProductSearchModal } from '@/components/shared/product-search-modal';
+import { WarehouseField, mapWarehouse } from '@/components/shared/warehouse-field';
+import { createProductColumn } from '@/components/shared/document-line-columns';
+import { useDocumentLines } from '@/hooks/use-document-lines';
 import { useSelectOptions } from '@/hooks/use-select-options';
 import { useDocumentPage } from '@/hooks/use-document-page';
 import { formatISODate, todayISODate } from '@/lib/utils';
@@ -44,8 +38,6 @@ interface StocktakingFormProps {
   hideActions?: boolean;
 }
 
-const mapWarehouse = (w: Warehouse) => ({ value: String(w.id), label: w.name });
-
 function createEmptyItem(lineNo: number): StocktakingItemWithLineNo {
   return { lineNo, productId: '', theoreticalQty: 0 };
 }
@@ -56,6 +48,28 @@ function DifferenceCell({ item }: { item: StocktakingItemWithLineNo }) {
   if (diff > 0) return <span className="font-medium text-success">+{diff}</span>;
   if (diff < 0) return <span className="font-medium text-destructive">{diff}</span>;
   return <span>0</span>;
+}
+
+/**
+ * 棚卸伝票の状態遷移（確定）のボタン定義。view ページの右上アクション行と
+ * 伝票フォームの双方が同じ定義を使う。
+ */
+export function useStocktakingStatusActions(doc?: { id: number | string; status: string } | null) {
+  const { confirmDocument, transitioning } = useDocumentPage({
+    basePath: '/stocktakings',
+    entityName: '棚卸',
+  });
+
+  const statusActions: StatusAction[] = [];
+  if (doc?.status === 'DRAFT') {
+    statusActions.push({
+      label: '確定する',
+      onAction: () => confirmDocument(doc.id),
+      confirmTitle: '棚卸を確定',
+      confirmDescription: '棚卸を確定すると在庫が実数量で上書きされます。よろしいですか？',
+    });
+  }
+  return { statusActions, transitioning };
 }
 
 export function StocktakingForm({
@@ -71,29 +85,9 @@ export function StocktakingForm({
     '/warehouses',
     useCallback(mapWarehouse, []),
   );
-  const { confirmDocument, transitioning } = useDocumentPage({
-    basePath: '/stocktakings',
-    entityName: '棚卸',
-  });
+  const { statusActions, transitioning } = useStocktakingStatusActions(doc);
 
   const today = todayISODate();
-  const [items, setItems] = useState<StocktakingItemWithLineNo[]>(
-    doc?.items?.map((it, idx) => ({
-      lineNo: idx + 1,
-      productId: it.productId,
-      theoreticalQty: it.theoreticalQty,
-      actualQty: it.actualQty ?? undefined,
-      differenceReason: it.differenceReason ?? undefined,
-    })) ?? [createEmptyItem(1)],
-  );
-
-  const {
-    productSearchOpen,
-    setProductSearchOpen,
-    openProductSearch,
-    handleProductSelect,
-    getProductDisplay,
-  } = useProductLineSelection(setItems, doc?.items);
 
   const {
     register,
@@ -118,11 +112,28 @@ export function StocktakingForm({
     },
   });
 
-  const warehouseId = watch('warehouseId');
+  const {
+    lines: items,
+    setLines: setItems,
+    productSearchOpen,
+    setProductSearchOpen,
+    openProductSearch,
+    handleProductSelect,
+    getProductDisplay,
+  } = useDocumentLines<StocktakingFormData, StocktakingItemWithLineNo>({
+    setValue,
+    field: 'items',
+    initialLines: doc?.items?.map((it, idx) => ({
+      lineNo: idx + 1,
+      productId: it.productId,
+      theoreticalQty: it.theoreticalQty,
+      actualQty: it.actualQty ?? undefined,
+      differenceReason: it.differenceReason ?? undefined,
+    })) ?? [createEmptyItem(1)],
+    existingLines: doc?.items,
+  });
 
-  useEffect(() => {
-    setValue('items', items);
-  }, [items, setValue]);
+  const warehouseId = watch('warehouseId');
 
   const handleFormSubmit = handleSubmit((data) => {
     const cleanItems = items.map(({ lineNo: _lineNo, ...rest }) => rest);
@@ -130,19 +141,11 @@ export function StocktakingForm({
   });
 
   const itemColumns: LineColumn<StocktakingItemWithLineNo>[] = [
-    {
-      key: 'productId',
-      label: '商品',
-      width: '30%',
-      render: (item, index) => (
-        <ProductLineCell
-          isView={isView}
-          productId={item.productId}
-          getProductDisplay={getProductDisplay}
-          onSearch={() => openProductSearch(index)}
-        />
-      ),
-    },
+    createProductColumn<StocktakingItemWithLineNo>(
+      isView,
+      { getProductDisplay, openProductSearch },
+      '30%',
+    ),
     {
       key: 'theoreticalQty',
       label: '理論在庫',
@@ -204,16 +207,6 @@ export function StocktakingForm({
     },
   ];
 
-  const statusActions: StatusAction[] = [];
-  if (doc?.status === 'DRAFT') {
-    statusActions.push({
-      label: '確定する',
-      onAction: () => confirmDocument(doc.id),
-      confirmTitle: '棚卸を確定',
-      confirmDescription: '棚卸を確定すると在庫が実数量で上書きされます。よろしいですか？',
-    });
-  }
-
   return (
     <>
       <DocumentForm
@@ -245,29 +238,13 @@ export function StocktakingForm({
               />
             </FormField>
 
-            <FormField label="倉庫" required={!isView} error={errors.warehouseId?.message}>
-              {isView ? (
-                <span className="text-sm">
-                  {warehouseOpts.find((o) => o.value === String(warehouseId))?.label ?? '-'}
-                </span>
-              ) : (
-                <Select
-                  value={warehouseId ? String(warehouseId) : ''}
-                  onValueChange={(val) => setValue('warehouseId', Number(val))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="倉庫を選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouseOpts.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </FormField>
+            <WarehouseField
+              isView={isView}
+              value={warehouseId}
+              options={warehouseOpts}
+              error={errors.warehouseId?.message}
+              onChange={(val) => setValue('warehouseId', val)}
+            />
 
             <FormField label="棚卸担当者" error={errors.stocktaker?.message} htmlFor="stocktaker">
               <Input id="stocktaker" disabled={isView} {...register('stocktaker')} />

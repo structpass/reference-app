@@ -5,7 +5,7 @@ import { GlobalNav } from '@/components/layout/global-nav';
 const RETE_URL = process.env.NEXT_PUBLIC_RETE_URL ?? 'http://localhost:3010';
 
 describe('GlobalNav', () => {
-  it('rete と同順・英語ラベルのタブ（Home/Desk/File/System/Mock/Setting/Model/Backlog・ref-0020）を表示すること', () => {
+  it('rete と同順・英語ラベルのタブ（Home/Desk/File/System/Mock/Setting/Model・ref-0020）を表示すること', () => {
     render(<GlobalNav />);
     const nav = screen.getByRole('navigation', { name: 'グローバルメニュー' });
     // ref-0026: ラベル内に太字幅予約ゴースト（aria-hidden の複製テキスト）が入ったため、
@@ -13,16 +13,17 @@ describe('GlobalNav', () => {
     const labels = [...nav.querySelectorAll('.tab-link-label')].map(
       (el) => el.firstChild?.textContent,
     );
-    expect(labels).toEqual([
-      'Home',
-      'Desk',
-      'File',
-      'System',
-      'Mock',
-      'Setting',
-      'Model',
-      'Backlog',
-    ]);
+    expect(labels).toEqual(['Home', 'Desk', 'File', 'System', 'Mock', 'Setting', 'Model']);
+  });
+
+  it('Board 廃止に伴い Backlog タブは無い（タブの並びは Model で終わる）', () => {
+    render(<GlobalNav />);
+    const nav = screen.getByRole('navigation', { name: 'グローバルメニュー' });
+    const labels = [...nav.querySelectorAll('.tab-link-label')].map(
+      (el) => el.firstChild?.textContent,
+    );
+    expect(labels).not.toContain('Backlog');
+    expect(labels[labels.length - 1]).toBe('Model');
   });
 
   it('System タブがアクティブ表示（aria-current=page）でリンクを持たないこと', () => {
@@ -36,7 +37,7 @@ describe('GlobalNav', () => {
     expect(system!.tagName).not.toBe('A');
   });
 
-  it('Home/Desk/File/Setting/Model/Backlog が Rete のベース URL 配下へのリンクであること', () => {
+  it('Home/Desk/File/Setting/Model が Rete のベース URL 配下へのリンクであること', () => {
     render(<GlobalNav />);
     const expected: Record<string, string> = {
       Home: '/hub',
@@ -44,7 +45,6 @@ describe('GlobalNav', () => {
       File: '/files',
       Setting: '/settings',
       Model: '/model',
-      Backlog: '/backlog',
     };
     // accessible name（aria-hidden のゴーストは含まれない）で特定する（ref-0026）。
     for (const [label, path] of Object.entries(expected)) {

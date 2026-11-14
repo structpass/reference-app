@@ -22,8 +22,10 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <div className={cn('w-full space-y-1.5', className)}>
+      {/* ラベルは行全体を占有する（inline のまま値テキストと横並びになり、
+          「倉庫千葉倉庫」のように語が連結して見える崩れを防ぐ）。 */}
       {label && (
-        <Label htmlFor={htmlFor}>
+        <Label htmlFor={htmlFor} className="block">
           {label}
           {required && (
             <span className="ml-2 text-xs text-destructive">

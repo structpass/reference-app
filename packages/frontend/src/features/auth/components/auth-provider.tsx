@@ -5,10 +5,6 @@ import type { User } from '@struct-pass/shared';
 import { AuthContext } from '@/features/auth/hooks/use-auth';
 import apiClient from '@/lib/api-client';
 import { resetColumnWidthsStore } from '@/features/user-table-column-widths';
-import {
-  applyReteDisplayPreference,
-  fetchReteDisplayPreference,
-} from '@/lib/rete-display-preference';
 import toast from 'react-hot-toast';
 import { resolveHttpUrl } from '@/lib/url-guard';
 
@@ -37,24 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // rete の表示個人設定（縞模様 / ref-0037）はログイン確定後に 1 回だけ :root へ反映する。
-  // rete session-provider.tsx と同一パターン：取得失敗・未ログイン・rete到達不能はエラー表示せず
-  // 既定色のまま静かにフォールバックする（best-effort）。
-  useEffect(() => {
-    if (!user) {
-      applyReteDisplayPreference(null);
-      return;
-    }
-    let active = true;
-    fetchReteDisplayPreference()
-      .then((pref) => {
-        if (active) applyReteDisplayPreference(pref);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [user]);
+  // rete の表示個人設定（縞模様 / ref-0037）の写しは d1264/d1265 で廃止した。
+  // reference のブラウザには rete アプリのセッションが無く、呼んでも 401 がコンソールに残るだけで
+  // 何も写せなかった。行の縞は reference の既定色（--sp-row-stripe）のまま使う。
 
   const refreshUser = useCallback(async () => {
     const res = await apiClient.get('/auth/me');

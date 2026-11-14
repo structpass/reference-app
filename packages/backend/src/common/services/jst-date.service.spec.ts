@@ -60,4 +60,38 @@ describe('JstDateService', () => {
       expect(service.toDateString(new Date('2026-03-16T15:05:00.000Z'))).toBe('2026-03-17');
     });
   });
+
+  // d1005: 日付だけの列（DB の date 型）は保存した暦日で出し、日時だけを日本時間にする。
+  // 画面の日付（date 型）と同じ暦日で、時刻（9:00 など）を付けない。
+  describe('書き出しの日付（date 型）', () => {
+    it('date 型の値（UTC 0 時の Date）は +9 時間せず、保存した暦日を返す', () => {
+      // Prisma は date 型を 2026-03-17T00:00:00.000Z として返す。
+      expect(service.toExportDate(new Date('2026-03-17T00:00:00.000Z'))).toBe('2026/3/17');
+      // 日時として出すと 09:00 になり、時刻の分からない日付に粗い値が出ていた。
+      expect(service.toExportDateTime(new Date('2026-03-17T00:00:00.000Z'))).toBe('2026/3/17 9:00');
+    });
+
+    it('暦日の文字列（YYYY-MM-DD）はそのままの日を返す', () => {
+      expect(service.toExportDate('2026-03-17')).toBe('2026/3/17');
+    });
+
+    it('実行環境の時計に依存しない', () => {
+      const originalTz = process.env.TZ;
+      const results: string[] = [];
+      try {
+        for (const tz of ['UTC', 'Asia/Tokyo']) {
+          process.env.TZ = tz;
+          results.push(service.toExportDate(new Date('2026-03-17T00:00:00.000Z')));
+        }
+      } finally {
+        process.env.TZ = originalTz;
+      }
+      expect(results).toEqual(['2026/3/17', '2026/3/17']);
+    });
+
+    it('解釈できない値は空文字（例外にしない）', () => {
+      expect(service.toExportDate('not-a-date')).toBe('');
+      expect(service.toExportDate(null as unknown as Date)).toBe('');
+    });
+  });
 });

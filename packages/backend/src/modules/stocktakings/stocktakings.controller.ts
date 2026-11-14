@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ExcelService } from '../../common/services/excel.service';
+import { statusLabel } from '../../common/services/status-label';
 import { JstDateService } from '../../common/services/jst-date.service';
 import { StocktakingsService } from './stocktakings.service';
 import { CreateStocktakingDto, UpdateStocktakingDto, FindStocktakingsDto } from './dto';
@@ -50,11 +51,6 @@ export class StocktakingsController {
     `attachment; filename="stocktakings.xlsx"; filename*=UTF-8''stocktakings.xlsx`,
   )
   async exportExcel(@Query() query: FindStocktakingsDto): Promise<StreamableFile> {
-    const statusMap: Record<string, string> = {
-      DRAFT: '下書き',
-      CONFIRMED: '確定',
-    };
-
     const stocktakings = await this.stocktakingsService.findAllForExport(query);
     const columns = [
       { header: '棚卸ID', width: 12 },
@@ -66,10 +62,10 @@ export class StocktakingsController {
     ];
     const rows = stocktakings.map((st) => [
       String(st.id),
-      this.jstDate.toExportDateTime(st.stocktakingDate),
+      this.jstDate.toExportDate(st.stocktakingDate),
       String(st.warehouseId),
       st.stocktaker ?? '',
-      statusMap[st.status] ?? st.status,
+      statusLabel(st.status),
       this.jstDate.toExportDateTime(st.createdAt),
     ]);
 

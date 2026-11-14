@@ -66,10 +66,10 @@ services:
       dockerfile: packages/frontend/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
-        # Dockerfile が RETE 2 変数を必須化した（未設定はビルド失敗・ref-0087）ため、dev は
-        # localhost を明示して渡す（黙ったフォールバックでなく宣言された dev 値）。
+        # Dockerfile が NEXT_PUBLIC_RETE_URL を必須化した（未設定はビルド失敗・ref-0087）ため、
+        # dev は localhost を明示して渡す（黙ったフォールバックでなく宣言された dev 値）。
+        # NEXT_PUBLIC_RETE_API_URL は d1264/d1265 で表示個人設定の写しを廃止したため渡さない。
         NEXT_PUBLIC_RETE_URL: http://localhost:3010
-        NEXT_PUBLIC_RETE_API_URL: http://localhost:3011/api/v1
     container_name: struct-pass-frontend
     restart: unless-stopped
     ports:

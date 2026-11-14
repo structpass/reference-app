@@ -16,6 +16,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiProduces } from '@ne
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators';
 import { ExcelService } from '../../common/services/excel.service';
+import { statusLabel } from '../../common/services/status-label';
 import { JstDateService } from '../../common/services/jst-date.service';
 import { WarehousesService } from './warehouses.service';
 import { CreateWarehouseDto, UpdateWarehouseDto, FindWarehousesDto } from './dto';
@@ -49,11 +50,6 @@ export class WarehousesController {
     `attachment; filename="warehouses.xlsx"; filename*=UTF-8''warehouses.xlsx`,
   )
   async exportExcel(@Query() query: FindWarehousesDto): Promise<StreamableFile> {
-    const statusMap: Record<string, string> = {
-      ACTIVE: '有効',
-      INACTIVE: '無効',
-    };
-
     const warehouses = await this.warehousesService.findAllForExport(query);
     const columns = [
       { header: '倉庫コード', width: 15 },
@@ -66,7 +62,7 @@ export class WarehousesController {
       w.code,
       w.name,
       w.address ?? '',
-      statusMap[w.status] ?? w.status,
+      statusLabel(w.status),
       this.jstDate.toExportDateTime(w.createdAt),
     ]);
 

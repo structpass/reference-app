@@ -165,17 +165,18 @@ export function ProductSearchModal({ open, onClose, onSelect }: ProductSearchMod
 
         <div
           ref={listRef}
-          className="relative min-h-[400px] flex-1 overflow-auto rounded-md border border-border"
+          data-list-compact
+          className="relative min-h-[400px] flex-1 overflow-auto border border-[var(--sp-line-warm)] bg-[var(--sp-card)]"
           onMouseOver={onMouseOver}
           onMouseLeave={onMouseLeave}
         >
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10 bg-[var(--sp-paper-2)]">
+          <table className="w-full">
+            <thead className="sticky top-0 z-10">
               <tr>
                 {SORTABLE_COLUMNS.map((col) => (
                   <th
                     key={col.key}
-                    className="cursor-pointer select-none px-3 py-2 text-left font-medium text-[var(--sp-text-warm-mute)] hover:text-[var(--sp-text-warm)]"
+                    className="relative h-8 cursor-pointer select-none px-4 text-left align-middle hover:text-[var(--sp-text-warm)]"
                     onClick={() => handleSort(col.key)}
                   >
                     <span className="inline-flex items-center gap-1">
@@ -194,7 +195,7 @@ export function ProductSearchModal({ open, onClose, onSelect }: ProductSearchMod
                 // sp-row-pillable でセル内容を前面化し帯がテキスト上に被らないようにする
                 // （code-reviewer MEDIUM 指摘）。
                 <tr className="sp-row-pillable">
-                  <td colSpan={5} className="px-3 py-12 text-center">
+                  <td colSpan={5} className="px-4 py-12 text-center">
                     <Spinner className="mx-auto h-6 w-6 text-primary" />
                   </td>
                 </tr>
@@ -202,7 +203,7 @@ export function ProductSearchModal({ open, onClose, onSelect }: ProductSearchMod
                 <tr className="sp-row-pillable">
                   <td
                     colSpan={5}
-                    className="px-3 py-12 text-center text-[var(--sp-text-warm-mute)]"
+                    className="px-4 py-12 text-center text-[var(--sp-text-warm-mute)]"
                   >
                     該当する商品がありません
                   </td>
@@ -211,18 +212,18 @@ export function ProductSearchModal({ open, onClose, onSelect }: ProductSearchMod
                 products.map((p) => (
                   <tr
                     key={p.id}
-                    className="sp-row-pillable cursor-pointer border-t border-border transition-colors"
+                    className="sp-row-pillable cursor-pointer border-b transition-colors"
                     onClick={() => handleSelect(p)}
                   >
-                    <td className="px-3 py-2 font-mono text-xs">{p.code}</td>
-                    <td className="px-3 py-2">{p.name}</td>
-                    <td className="px-3 py-2 text-[var(--sp-text-warm-mute)]">
+                    <td className="px-4 py-2 font-mono text-xs">{p.code}</td>
+                    <td className="px-4 py-2">{p.name}</td>
+                    <td className="px-4 py-2 text-[var(--sp-text-warm-mute)]">
                       {p.category?.name ?? '-'}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
+                    <td className="px-4 py-2 text-right tabular-nums">
                       {formatNumber(p.price ?? 0)}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
+                    <td className="px-4 py-2 text-right tabular-nums">
                       {formatNumber(p.stockQuantity ?? 0)}
                     </td>
                   </tr>

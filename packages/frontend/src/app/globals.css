@@ -66,10 +66,11 @@
     --sp-line-warm: #c5d0e0;
     --sp-line-warm-2: #d7dfea;
     /* mdl-0052: rete 正本の既定 #FAFCFF（薄い青み白）へ追随（dsk-0377 の #F4F5F7 は開発統括判断で差し戻し）。
-     * ref-0037: rete のアカウント別表示個人設定を反映する先はこの --sp-row-stripe-rete-override 経由。
+     * d1264/d1265: rete のアカウント別表示個人設定を写す仕組みは廃止した（呼んでも 401 になるだけで
+     * 写せなかった）。この既定色をそのまま使う。
      * plains/island/mountain/swamp/forest の5テーマは意図的な別着色のため据え置き（decision 0015）
-     * ＝各テーマブロックは --sp-row-stripe を直接宣言し、この var() 参照を経由しないため無関係に保たれる。 */
-    --sp-row-stripe: var(--sp-row-stripe-rete-override, #fafcff);
+     * ＝各テーマブロックは --sp-row-stripe を直接宣言する。 */
+    --sp-row-stripe: #fafcff;
     --sp-accent-teal: #1fb6a2;
     /* 入力フォーカス枠の単一ソース（rete mdl-0023 と共通規約）: アクティブな入力項目は「枠線と
      * 同太さ 1px・この色・シャドウ（にじみ/リング/inset）無し」。テーマの teal に自動追従する。 */
@@ -673,6 +674,9 @@ nextjs-portal {
   background: var(--sp-card) !important;
 }
 [data-list-compact] thead th {
+  /* 列区切り（::before の absolute 配置）の基準を各 th にする。
+     tableId 無しの表（取込エラー結果・台帳管理など）でも区切りが列境界に落ちる。 */
+  position: relative;
   background: var(--sp-card) !important;
   color: var(--sp-text-warm-mute) !important;
   font-size: 0.75rem !important;
@@ -710,6 +714,23 @@ nextjs-portal {
   cursor: default !important;
 }
 [data-list-compact] thead th[data-no-interact]:hover {
+  background: var(--sp-card) !important;
+  color: var(--sp-text-warm-mute) !important;
+}
+/* 合計行（tfoot）も明細行と同じ文字サイズ・数字組みに揃える
+ * （tbody td 向けの指定は tfoot に効かないため、同じ値をここにも置く）。 */
+[data-list-compact] tfoot td {
+  font-size: 0.8125rem;
+  color: var(--sp-text-warm);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+/* 並べ替えできないヘッダ（明細・設定表）は hover で操作可能に見せない。
+ * 列区切り線は残したいので data-no-interact（区切りごと消す）ではなく専用属性で抑える。 */
+[data-list-compact] thead th[data-static] {
+  cursor: default;
+}
+[data-list-compact] thead th[data-static]:hover {
   background: var(--sp-card) !important;
   color: var(--sp-text-warm-mute) !important;
 }
