@@ -107,21 +107,21 @@ pnpm --filter @struct-pass/frontend ui:scenario ../../tmp/scenario.xlsx
 
 ### Excel スキーマ（`scenarios` シート、1 行 = 1 step）
 
-| 列           | 例                                   | 説明                                           |
-| ------------ | ------------------------------------ | ---------------------------------------------- |
-| scenarioId   | TC-001                               | 主キー                                         |
-| scenarioName | ナビゲーション遷移                   | 人間用ラベル                                   |
-| patternId    | TC-001-01                            | 同シナリオ内の分岐識別                         |
-| patternName  | サイドバーから遷移                   | 分岐の意味                                     |
-| precondRole  | SYS_ADMIN                            | 認証 role                                      |
+| 列           | 例                                   | 説明                                               |
+| ------------ | ------------------------------------ | -------------------------------------------------- |
+| scenarioId   | TC-001                               | 主キー                                             |
+| scenarioName | ナビゲーション遷移                   | 人間用ラベル                                       |
+| patternId    | TC-001-01                            | 同シナリオ内の分岐識別                             |
+| patternName  | サイドバーから遷移                   | 分岐の意味                                         |
+| precondRole  | SYS_ADMIN                            | 認証 role                                          |
 | precondData  | ログイン済み（file-import 権限あり） | 手動準備の前提（実行には影響しない、開発統括メモ） |
-| stepNo       | 1, 2, 3                              | 操作順序                                       |
-| operation    | `goto: /dashboard/imports`           | Cell DSL（下記）                               |
-| expected     | `expectVisible: h1`                  | Cell DSL（下記）                               |
-| judgeMethod  | `dom` / `vision` / `both`            | 判定方法                                       |
-| result       | `OK` / `NG` / `pending` / `skip`     | 実行後 runner が書き込む                       |
-| evidence     | スクショパス or エラーメッセージ     | 実行後 runner が書き込む                       |
-| note         | 開発統括メモ                             | runner は読まない                              |
+| stepNo       | 1, 2, 3                              | 操作順序                                           |
+| operation    | `goto: /dashboard/imports`           | Cell DSL（下記）                                   |
+| expected     | `expectVisible: h1`                  | Cell DSL（下記）                                   |
+| judgeMethod  | `dom` / `vision` / `both`            | 判定方法                                           |
+| result       | `OK` / `NG` / `pending` / `skip`     | 実行後 runner が書き込む                           |
+| evidence     | スクショパス or エラーメッセージ     | 実行後 runner が書き込む                           |
+| note         | 開発統括メモ                         | runner は読まない                                  |
 
 実行後、`results` シートが自動生成され、サマリ（timestamp / total / OK / NG / pending / skip）が記録される。
 
